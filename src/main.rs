@@ -1,5 +1,9 @@
-use libloading::os::unix::Library;
+#[cfg(unix)]
 use libloading::os::unix::*;
+
+#[cfg(windows)]
+use libloading::os::windows::*;
+
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
@@ -47,7 +51,7 @@ pub unsafe extern "C" fn napi_define_properties(
   let properties = std::slice::from_raw_parts(properties, property_count);
   for property in properties {
     let name = CStr::from_ptr(property.utf8name).to_str().unwrap();
-
+    println!("napi_define_properties: registering method {}", name);
     let name = v8::String::new(env.scope, name).unwrap();
     if let Some(method) = property.method {
       let external = v8::External::new(env.scope, method as *mut c_void);
@@ -56,6 +60,9 @@ pub unsafe extern "C" fn napi_define_properties(
          args: v8::FunctionCallbackArguments,
          _: v8::ReturnValue| {
           // This probably won't work. WIP. Replace it with a `println` to see if its reachable.
+          //
+          println!("napi_define_properties: called method");
+          return;
           let data = args.data().unwrap();
           let method_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
           let cb =
@@ -86,21 +93,21 @@ fn main() {
   v8::V8::initialize();
 
   let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
+  #[cfg(unix)]
+  let flags = RTLD_LAZY;
+  #[cfg(windows)]
+  let flags = 0;
 
   // Initializer callback.
   let library = unsafe {
     Library::open(
       Some("./example_module/target/release/libexample_module.so"),
-      RTLD_LAZY,
+      flags,
     )
     .unwrap()
   };
   let init = unsafe {
-    library
-            .get::<unsafe extern "C" fn(env: napi_env, exports: napi_value) -> napi_value>(
-                b"napi_register_module_v1",
-            )
-            .unwrap()
+    library.get::<unsafe extern "C" fn(env: napi_env, exports: napi_value) -> napi_value>(b"napi_register_module_v1").unwrap()
   };
 
   let mut handle_scope = &mut v8::HandleScope::new(isolate);
