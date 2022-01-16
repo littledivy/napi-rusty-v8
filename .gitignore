@@ -1,0 +1,4 @@
+*.node
+target/
+example_module/target/
+

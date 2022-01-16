@@ -1,0 +1,9 @@
+[package]
+name = "napi-deno"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+v8 = "0.37.0"
+libloading = "0.7"
+
