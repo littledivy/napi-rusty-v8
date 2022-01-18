@@ -54,28 +54,39 @@ pub unsafe extern "C" fn napi_define_properties(
     println!("napi_define_properties: registering method {}", name);
     let name = v8::String::new(env.scope, name).unwrap();
     if let Some(method) = property.method {
-      let external = v8::External::new(env.scope, method as *mut c_void);
-      let method = v8::Function::builder(
-        |scope: &mut v8::HandleScope,
+      let method_ptr =
+        std::mem::transmute::<napi_callback, *mut c_void>(Some(method));
+
+      let method_ptr = v8::External::new(env.scope, method_ptr);
+
+      let function = v8::Function::builder(
+        |handle_scope: &mut v8::HandleScope,
          args: v8::FunctionCallbackArguments,
          _: v8::ReturnValue| {
-          // This probably won't work. WIP. Replace it with a `println` to see if its reachable.
-          //
-          println!("napi_define_properties: called method");
-          return;
           let data = args.data().unwrap();
           let method_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
-          let cb =
-            unsafe { *(method_ptr.value() as *mut napi_callback) }.unwrap();
-          // TODO: Stuff
-          unsafe { cb(ptr::null_mut(), ptr::null_mut()) };
+
+          // Create env here, ffs.
+
+          let method = std::mem::transmute::<*mut c_void, napi_callback>(
+            method_ptr.value(),
+          )
+          .unwrap();
+
+          let context = v8::Context::new(handle_scope);
+          let scope = &mut v8::ContextScope::new(handle_scope, context);
+
+          let mut env = Env { scope };
+          let env_ptr = &mut env as *mut _ as *mut c_void;
+
+          println!("napi_define_properties: call method");
+          unsafe { method(env_ptr, ptr::null_mut()) };
         },
       )
-      .data(external.into())
+      .data(method_ptr.into())
       .build(env.scope)
       .unwrap();
-
-      object.set(env.scope, name.into(), method.into()).unwrap();
+      object.set(env.scope, name.into(), function.into()).unwrap();
     }
   }
 }

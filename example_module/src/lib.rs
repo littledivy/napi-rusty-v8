@@ -4,9 +4,9 @@ use std::os::raw::c_char;
 use std::ptr;
 
 #[no_mangle]
-unsafe extern "C" fn hello(_env: napi_env, _info: napi_callback_info) -> napi_value {
+pub unsafe extern "C" fn hello(_env: napi_env, _info: napi_callback_info) -> napi_value {
   println!("Hello from Rust!");
-  unimplemented!()
+  loop {} 
 }
 
 #[no_mangle]
@@ -27,5 +27,6 @@ unsafe extern "C" fn napi_register_module_v1(
   };
 
   napi_define_properties(env, exports, 1, &prop);
+  std::mem::forget(prop);
   exports
 }
