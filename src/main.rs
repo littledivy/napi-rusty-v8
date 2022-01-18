@@ -45,13 +45,11 @@ pub unsafe extern "C" fn napi_define_properties(
   properties: *const napi_property_descriptor,
 ) {
   let mut env = &mut *(env as *mut Env);
-  println!("napi_define_properties");
 
   let object: v8::Local<v8::Object> = *(obj as *mut v8::Local<v8::Object>);
   let properties = std::slice::from_raw_parts(properties, property_count);
   for property in properties {
     let name = CStr::from_ptr(property.utf8name).to_str().unwrap();
-    println!("napi_define_properties: registering method {}", name);
     let name = v8::String::new(env.scope, name).unwrap();
     if let Some(method) = property.method {
       let method_ptr =
@@ -62,11 +60,9 @@ pub unsafe extern "C" fn napi_define_properties(
       let function = v8::Function::builder(
         |handle_scope: &mut v8::HandleScope,
          args: v8::FunctionCallbackArguments,
-         _: v8::ReturnValue| {
+         mut rv: v8::ReturnValue| {
           let data = args.data().unwrap();
           let method_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
-
-          // Create env here, ffs.
 
           let method = std::mem::transmute::<*mut c_void, napi_callback>(
             method_ptr.value(),
@@ -79,8 +75,10 @@ pub unsafe extern "C" fn napi_define_properties(
           let mut env = Env { scope };
           let env_ptr = &mut env as *mut _ as *mut c_void;
 
-          println!("napi_define_properties: call method");
-          unsafe { method(env_ptr, ptr::null_mut()) };
+          let value = unsafe { method(env_ptr, ptr::null_mut()) };
+          let value = *(value as *mut v8::Local<v8::Value>);
+
+          rv.set(value);
         },
       )
       .data(method_ptr.into())
@@ -92,8 +90,22 @@ pub unsafe extern "C" fn napi_define_properties(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn napi_create_string_utf8(
+  env: napi_env,
+  string: *const u8,
+  length: usize,
+  result: *mut napi_value,
+) {
+  let mut env = &mut *(env as *mut Env);
+  let string = std::slice::from_raw_parts(string, length);
+  let string = std::str::from_utf8(string).unwrap();
+  let v8str = v8::String::new(env.scope, string).unwrap();
+  let mut value: v8::Local<v8::Value> = v8str.into();
+  *result = &mut value as *mut _ as napi_value;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn napi_module_register() {
-  println!("napi_module_register");
   // no-op.
 }
 

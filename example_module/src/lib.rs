@@ -4,9 +4,13 @@ use std::os::raw::c_char;
 use std::ptr;
 
 #[no_mangle]
-pub unsafe extern "C" fn hello(_env: napi_env, _info: napi_callback_info) -> napi_value {
-  println!("Hello from Rust!");
-  loop {} 
+pub unsafe extern "C" fn hello(env: napi_env, info: napi_callback_info) -> napi_value {
+    println!("Hello from Rust!");
+
+    let mut result: napi_value = ptr::null_mut();
+    napi_create_string_utf8(env, "world".as_ptr() as *const i8, 5, &mut result);
+    assert!(!result.is_null());
+    result
 }
 
 #[no_mangle]
