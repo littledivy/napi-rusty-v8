@@ -2,4 +2,4 @@
 target/
 example_module/target/
 node_modules/
-
+.vscode/

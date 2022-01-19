@@ -1,0 +1,5 @@
+LIBRARY
+EXPORTS
+  napi_define_properties
+  napi_create_string_utf8
+  napi_module_register

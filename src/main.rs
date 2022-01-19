@@ -1,3 +1,6 @@
+#![allow(non_camel_case_types)]
+#![allow(unused_mut)]
+
 #[cfg(unix)]
 use libloading::os::unix::*;
 
@@ -44,6 +47,7 @@ pub unsafe extern "C" fn napi_define_properties(
   property_count: usize,
   properties: *const napi_property_descriptor,
 ) {
+  println!("[napi]: napi_define_properties");
   let mut env = &mut *(env as *mut Env);
 
   let object: v8::Local<v8::Object> = *(obj as *mut v8::Local<v8::Object>);
@@ -118,13 +122,22 @@ fn main() {
   let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
   #[cfg(unix)]
   let flags = RTLD_LAZY;
-  #[cfg(windows)]
-  let flags = 0;
+  #[cfg(not(unix))]
+  let flags = 0x00000008;
 
   // Initializer callback.
+  #[cfg(unix)]
   let library = unsafe {
     Library::open(
       Some("./example_module/target/release/libexample_module.so"),
+      flags,
+    )
+    .unwrap()
+  };
+  #[cfg(not(unix))]
+  let library = unsafe {
+    Library::load_with_flags(
+      "./example_module/target/debug/example_module.dll",
       flags,
     )
     .unwrap()
