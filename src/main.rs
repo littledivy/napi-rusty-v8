@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(unused_mut)]
+#![allow(unused_variables)]
+#![allow(non_upper_case_globals)]
 
 #[cfg(unix)]
 use libloading::os::unix::*;
@@ -16,9 +18,12 @@ struct Env<'a, 'b, 'c> {
   scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>,
 }
 
+type napi_status = i32;
 type napi_env = *mut c_void;
 type napi_value = *mut c_void;
 type napi_callback_info = *mut c_void;
+
+const napi_ok: napi_status = 0;
 
 pub type napi_callback = Option<
   unsafe extern "C" fn(env: napi_env, info: napi_callback_info) -> napi_value,
@@ -46,8 +51,7 @@ pub unsafe extern "C" fn napi_define_properties(
   obj: napi_value,
   property_count: usize,
   properties: *const napi_property_descriptor,
-) {
-  println!("[napi]: napi_define_properties");
+) -> napi_status {
   let mut env = &mut *(env as *mut Env);
 
   let object: v8::Local<v8::Object> = *(obj as *mut v8::Local<v8::Object>);
@@ -91,6 +95,8 @@ pub unsafe extern "C" fn napi_define_properties(
       object.set(env.scope, name.into(), function.into()).unwrap();
     }
   }
+
+  napi_ok
 }
 
 #[no_mangle]
@@ -99,18 +105,123 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   string: *const u8,
   length: usize,
   result: *mut napi_value,
-) {
+) -> napi_status {
   let mut env = &mut *(env as *mut Env);
   let string = std::slice::from_raw_parts(string, length);
   let string = std::str::from_utf8(string).unwrap();
   let v8str = v8::String::new(env.scope, string).unwrap();
   let mut value: v8::Local<v8::Value> = v8str.into();
   *result = &mut value as *mut _ as napi_value;
+  napi_ok
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn napi_module_register() {
+pub unsafe extern "C" fn napi_module_register() -> napi_status {
   // no-op.
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_set_named_property(
+  env: napi_env,
+  object: napi_value,
+  name: *const c_char,
+  value: napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
+  let name = CStr::from_ptr(name).to_str().unwrap();
+  let name = v8::String::new(env.scope, name).unwrap();
+  object.set(env.scope, name.into(), *(value as *const v8::Local<v8::Value>)).unwrap();
+  println!("stub: napi_set_named_property");
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_function(
+  env: napi_env,
+  string: *const u8,
+  length: usize,
+  cb: napi_callback,
+  data: *const c_void,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+
+  let method_ptr = std::mem::transmute::<napi_callback, *mut c_void>(cb);
+
+  let method_ptr = v8::External::new(env.scope, method_ptr);
+
+  let function = v8::Function::builder(
+    |handle_scope: &mut v8::HandleScope,
+     args: v8::FunctionCallbackArguments,
+     mut rv: v8::ReturnValue| {
+      let data = args.data().unwrap();
+      let method_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
+
+      let method =
+        std::mem::transmute::<*mut c_void, napi_callback>(method_ptr.value())
+          .unwrap();
+
+      let context = v8::Context::new(handle_scope);
+      let scope = &mut v8::ContextScope::new(handle_scope, context);
+
+      let mut env = Env { scope };
+      let env_ptr = &mut env as *mut _ as *mut c_void;
+
+      let value = unsafe { method(env_ptr, ptr::null_mut()) };
+      let value = *(value as *mut v8::Local<v8::Value>);
+
+      rv.set(value);
+    },
+  )
+  .data(method_ptr.into())
+  .build(env.scope)
+  .unwrap();
+
+  let mut value: v8::Local<v8::Value> = function.into();
+  *result = &mut value as *mut _ as napi_value;
+
+  println!("stub: napi_create_function");
+
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_throw(env: napi_env, error: napi_value) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  println!("stub: napi_throw");
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_reference() {
+  todo!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_define_class() {
+  todo!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_throw_error() {
+  todo!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_error(
+  env: napi_env,
+  code: napi_value,
+  msg: napi_value,
+  result: *mut napi_value,
+) {
+  println!("stub: napi_create_error");
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_object() {
+  todo!()
 }
 
 fn main() {
