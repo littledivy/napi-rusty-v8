@@ -131,9 +131,9 @@ pub unsafe extern "C" fn napi_set_named_property(
   let mut env = &mut *(env as *mut Env);
   let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
   let name = CStr::from_ptr(name).to_str().unwrap();
+  let fnval = *(value as *const v8::Local<v8::Value>);
   let name = v8::String::new(env.scope, name).unwrap();
-  object.set(env.scope, name.into(), *(value as *const v8::Local<v8::Value>)).unwrap();
-  println!("stub: napi_set_named_property");
+  object.set(env.scope, name.into(), fnval).unwrap();
   napi_ok
 }
 
@@ -143,24 +143,23 @@ pub unsafe extern "C" fn napi_create_function(
   string: *const u8,
   length: usize,
   cb: napi_callback,
-  data: *const c_void,
+  cb_data: napi_callback_info,
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
 
-  let method_ptr = std::mem::transmute::<napi_callback, *mut c_void>(cb);
-
-  let method_ptr = v8::External::new(env.scope, method_ptr);
+  let fn_ptr = std::mem::transmute::<napi_callback, *mut c_void>(cb);
+  let fn_ptr = v8::External::new(env.scope, fn_ptr);
 
   let function = v8::Function::builder(
     |handle_scope: &mut v8::HandleScope,
      args: v8::FunctionCallbackArguments,
      mut rv: v8::ReturnValue| {
       let data = args.data().unwrap();
-      let method_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
+      let fn_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
 
       let method =
-        std::mem::transmute::<*mut c_void, napi_callback>(method_ptr.value())
+        std::mem::transmute::<*mut c_void, napi_callback>(fn_ptr.value())
           .unwrap();
 
       let context = v8::Context::new(handle_scope);
@@ -169,20 +168,26 @@ pub unsafe extern "C" fn napi_create_function(
       let mut env = Env { scope };
       let env_ptr = &mut env as *mut _ as *mut c_void;
 
+      // TODO: why cant i pass cb_data instead of null_mut??
       let value = unsafe { method(env_ptr, ptr::null_mut()) };
       let value = *(value as *mut v8::Local<v8::Value>);
 
       rv.set(value);
     },
   )
-  .data(method_ptr.into())
+  .data(fn_ptr.into())
   .build(env.scope)
   .unwrap();
 
-  let mut value: v8::Local<v8::Value> = function.into();
-  *result = &mut value as *mut _ as napi_value;
+  let string = std::slice::from_raw_parts(string, length);
+  let string = std::str::from_utf8(string).unwrap();
+  let v8str = v8::String::new(env.scope, string).unwrap();
+  function.set_name(v8str);
 
-  println!("stub: napi_create_function");
+  let mut value: v8::Local<v8::Value> = function.into();
+  // Why does it only work when I comment this out??
+  // println!("a");
+  *result = &mut value as *mut _ as napi_value;
 
   napi_ok
 }
@@ -263,17 +268,21 @@ fn main() {
 
   let mut exports = v8::Object::new(scope);
   let mut env = Env { scope };
+  
   unsafe {
     init(
       &mut env as *mut _ as *mut c_void,
       &mut exports as *mut _ as *mut c_void,
     )
   };
+  
   let exports_str = v8::String::new(scope, "exports").unwrap();
+
   context
     .global(scope)
     .set(scope, exports_str.into(), exports.into())
     .unwrap();
+  
   let script = v8::String::new(scope, "exports.hello()").unwrap();
 
   let script =
