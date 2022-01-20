@@ -64,6 +64,7 @@ pub unsafe extern "C" fn napi_define_properties(
   properties: *const napi_property_descriptor,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  env.scope.enter();
 
   let object: v8::Local<v8::Object> = *(obj as *mut v8::Local<v8::Object>);
   let properties = std::slice::from_raw_parts(properties, property_count);
@@ -71,18 +72,12 @@ pub unsafe extern "C" fn napi_define_properties(
   for property in properties {
     let name = CStr::from_ptr(property.utf8name).to_str().unwrap();
 
-    env.scope.enter();
     let name = v8::String::new(env.scope, name).unwrap();
-    env.scope.exit();
 
     let method_ptr: *mut c_void = std::mem::transmute(property.method);
 
     if !method_ptr.is_null() {
-      env.scope.enter();
       let method_ptr = v8::External::new(env.scope, method_ptr);
-      env.scope.exit();
-
-      env.scope.enter();
 
       let function = v8::Function::builder(
         |handle_scope: &mut v8::HandleScope,
@@ -117,14 +112,11 @@ pub unsafe extern "C" fn napi_define_properties(
       .build(env.scope)
       .unwrap();
 
-      env.scope.exit();
-
-      env.scope.enter();
       object.set(env.scope, name.into(), function.into()).unwrap();
-      env.scope.exit();
     }
   }
 
+  env.scope.exit();
   napi_ok
 }
 
@@ -141,9 +133,7 @@ pub unsafe extern "C" fn napi_create_string_utf8(
 
   env.scope.enter();
   let v8str = v8::String::new(env.scope, string).unwrap();
-  env.scope.exit();
 
-  env.scope.enter();
   let mut value: v8::Local<v8::Value> = v8str.into();
   *result = &mut value as *mut _ as napi_value;
   env.scope.exit();
@@ -165,15 +155,12 @@ pub unsafe extern "C" fn napi_set_named_property(
   value: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  env.scope.enter();
   let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
   let name = CStr::from_ptr(name).to_str().unwrap();
   let value = *(value as *const v8::Local<v8::Value>);
 
-  env.scope.enter();
   let name = v8::String::new(env.scope, name).unwrap();
-  env.scope.exit();
-
-  env.scope.enter();
   object.set(env.scope, name.into(), value).unwrap();
   env.scope.exit();
 
@@ -193,9 +180,6 @@ pub unsafe extern "C" fn napi_create_function(
 
   env.scope.enter();
   let method_ptr = v8::External::new(env.scope, std::mem::transmute(cb));
-  env.scope.exit();
-
-  env.scope.enter();
 
   let function = v8::Function::builder(
     |handle_scope: &mut v8::HandleScope,
@@ -232,19 +216,14 @@ pub unsafe extern "C" fn napi_create_function(
   .build(env.scope)
   .unwrap();
 
-  env.scope.exit();
-
   if !string.is_null() {
     let string = std::slice::from_raw_parts(string, length);
     let string = std::str::from_utf8(string).unwrap();
 
-    env.scope.enter();
     let v8str = v8::String::new(env.scope, string).unwrap();
     function.set_name(v8str);
-    env.scope.exit();
   }
 
-  env.scope.enter();
   let mut value: v8::Local<v8::Value> = function.into();
   *result = &mut value as *mut _ as napi_value;
   env.scope.exit();
@@ -258,7 +237,7 @@ pub unsafe extern "C" fn napi_get_undefined(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  
+
   env.scope.enter();
   let mut value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
   *result = &mut value as *mut _ as napi_value;
@@ -279,17 +258,12 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
 
   env.scope.enter();
   let value: v8::Local<v8::Value> = *(value as *mut v8::Local<v8::Value>);
-  env.scope.exit();
 
-  env.scope.enter();
   // TODO: check if this is string
   let v8str = value.to_string(env.scope).unwrap();
-  env.scope.exit();
   let string_len = v8str.utf8_length(env.scope);
 
-  env.scope.enter();
   let string = v8str.to_rust_string_lossy(env.scope);
-  env.scope.exit();
 
   let string = string.as_bytes();
   let string = string.as_ptr();
@@ -298,6 +272,7 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
   *result_copied = string_len;
 
   if result_len < string_len {
+    env.scope.exit();
     return napi_ok;
   }
 
@@ -306,6 +281,7 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
     *result.offset(string_len as isize) = 0;
   }
 
+  env.scope.exit();
   napi_ok
 }
 
@@ -315,9 +291,10 @@ pub unsafe extern "C" fn napi_throw(
   error: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  let error = *(error as *mut v8::Local<v8::Value>);
 
   env.scope.enter();
+  let error = *(error as *mut v8::Local<v8::Value>);
+
   env.scope.throw_exception(error);
   env.scope.exit();
 
@@ -334,6 +311,8 @@ pub unsafe extern "C" fn napi_get_cb_info(
   cb_data: *mut *mut c_void,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+
+  env.scope.enter();
   let cbinfo: &CallbackInfo = &*(cbinfo as *const CallbackInfo);
   let args = &*(cbinfo.args as *const v8::FunctionCallbackArguments);
 
@@ -342,23 +321,18 @@ pub unsafe extern "C" fn napi_get_cb_info(
   }
 
   if !this_arg.is_null() {
-    env.scope.enter();
     let mut this: v8::Local<v8::Value> = args.this().into();
     *this_arg = &mut this as *mut _ as napi_value;
-    env.scope.exit();
   }
 
   let mut v_argc = -1;
   if !argc.is_null() {
-    env.scope.enter();
     v_argc = *argc;
     *argc = args.length();
-    env.scope.exit();
   }
 
   if !argv.is_null() {
     let mut v_argv = std::slice::from_raw_parts_mut(argv, v_argc as usize);
-    env.scope.enter();
     for i in 0..args.length() {
       let mut arg = args.get(i);
       if i >= v_argc && v_argc != -1 {
@@ -366,9 +340,9 @@ pub unsafe extern "C" fn napi_get_cb_info(
       }
       v_argv[i as usize] = &mut arg as *mut _ as napi_value;
     }
-    env.scope.exit();
   }
 
+  env.scope.exit();
   napi_ok
 }
 
@@ -395,14 +369,12 @@ pub unsafe extern "C" fn napi_create_error(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  env.scope.enter();
   let code: v8::Local<v8::Value> = *(code as *mut v8::Local<v8::Value>);
   let msg: v8::Local<v8::Value> = *(msg as *mut v8::Local<v8::Value>);
 
-  env.scope.enter();
   let msg = msg.to_string(env.scope).unwrap();
-  env.scope.exit();
 
-  env.scope.enter();
   let mut error = v8::Exception::error(env.scope, msg);
   *result = &mut error as *mut _ as napi_value;
   env.scope.exit();
@@ -469,7 +441,8 @@ fn main() {
     .set(inner_scope, exports_str.into(), exports.into())
     .unwrap();
 
-  let script = v8::String::new(inner_scope, 
+  let script = v8::String::new(
+    inner_scope,
     r#"
     function print(txt) {
       Deno.core.print(txt + "\n");
@@ -477,7 +450,8 @@ fn main() {
 
     print(exports.hello("Rust"));
     "#,
-  ).unwrap();
+  )
+  .unwrap();
 
   let script = v8::Script::compile(inner_scope, script, None)
     .expect("failed to compile script");
