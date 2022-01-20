@@ -59,13 +59,20 @@ pub unsafe extern "C" fn napi_define_properties(
   
   for property in properties {
     let name = CStr::from_ptr(property.utf8name).to_str().unwrap();
+    
+    env.scope.enter();
     let name = v8::String::new(env.scope, name).unwrap();
+    env.scope.exit();
 
     if let Some(method) = property.method {
       let method_ptr =
         std::mem::transmute::<napi_callback, *mut c_void>(Some(method));
 
+      env.scope.enter();
       let method_ptr = v8::External::new(env.scope, method_ptr);
+      env.scope.exit();
+
+      env.scope.enter();
 
       let function = v8::Function::builder(
         |handle_scope: &mut v8::HandleScope,
@@ -94,7 +101,12 @@ pub unsafe extern "C" fn napi_define_properties(
       .data(method_ptr.into())
       .build(env.scope)
       .unwrap();
+
+      env.scope.exit();
+
+      env.scope.enter();
       object.set(env.scope, name.into(), function.into()).unwrap();
+      env.scope.exit();
     }
   }
 
@@ -112,9 +124,16 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   let mut env = &mut *(env as *mut Env);
   let string = std::slice::from_raw_parts(string, length);
   let string = std::str::from_utf8(string).unwrap();
+
+  env.scope.enter();
   let v8str = v8::String::new(env.scope, string).unwrap();
+  env.scope.exit();
+
+  env.scope.enter();
   let mut value: v8::Local<v8::Value> = v8str.into();
   *result = &mut value as *mut _ as napi_value;
+  env.scope.exit();
+
   std::mem::forget(env);
   napi_ok
 }
@@ -133,16 +152,18 @@ pub unsafe extern "C" fn napi_set_named_property(
   value: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  env.scope.enter();
   let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
   let name = CStr::from_ptr(name).to_str().unwrap();
   let fnval = *(value as *const v8::Local<v8::Value>);
+  
+  env.scope.enter();
   let name = v8::String::new(env.scope, name).unwrap();
-  // seg faults when both are commented out...?
-  // println!("a"); // remove comment to get "TypeError: exports.hello is not a function"
-  object.set(env.scope, name.into(), fnval).unwrap();
-  // println!("b"); // remove comment to make it work
   env.scope.exit();
+
+  env.scope.enter();
+  object.set(env.scope, name.into(), fnval).unwrap();
+  env.scope.exit();
+  
   std::mem::forget(env);
   napi_ok
 }
@@ -157,11 +178,13 @@ pub unsafe extern "C" fn napi_create_function(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  env.scope.enter();
 
   let fn_ptr = std::mem::transmute::<napi_callback, *mut c_void>(cb);
+  env.scope.enter();
   let fn_ptr = v8::External::new(env.scope, fn_ptr);
+  env.scope.exit();
 
+  env.scope.enter();
   let function = v8::Function::builder(
     |handle_scope: &mut v8::HandleScope,
      args: v8::FunctionCallbackArguments,
@@ -189,17 +212,21 @@ pub unsafe extern "C" fn napi_create_function(
   .data(fn_ptr.into())
   .build(env.scope)
   .unwrap();
+  env.scope.exit();
 
   let string = std::slice::from_raw_parts(string, length);
   let string = std::str::from_utf8(string).unwrap();
+
+  env.scope.enter();
   let v8str = v8::String::new(env.scope, string).unwrap();
   function.set_name(v8str);
+  env.scope.exit();
 
+  env.scope.enter();
   let mut value: v8::Local<v8::Value> = function.into();
-  // Why does it only work when I comment this out??
-  // println!("a");
   *result = &mut value as *mut _ as napi_value;
   env.scope.exit();
+
   std::mem::forget(env);
   napi_ok
 }
@@ -210,8 +237,25 @@ pub unsafe extern "C" fn napi_get_undefined(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  env.scope.enter();
   let mut value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
   *result = &mut value as *mut _ as napi_value;
+  env.scope.exit();
+  std::mem::forget(env);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_get_value_string_utf8(
+  env: napi_env,
+  value: napi_value,
+  result: *mut u8,
+  result_len: *mut usize,
+  result_copied: *mut bool,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = *(value as *mut v8::Local<v8::Value>);
+  // TODO
   std::mem::forget(env);
   napi_ok
 }
@@ -219,7 +263,25 @@ pub unsafe extern "C" fn napi_get_undefined(
 #[no_mangle]
 pub unsafe extern "C" fn napi_throw(env: napi_env, error: napi_value) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  println!("stub: napi_throw");
+
+  env.scope.enter();
+  env.scope.throw_exception(*(error as *mut v8::Local<v8::Value>));
+  env.scope.exit();
+
+  std::mem::forget(env);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_get_cb_info(
+  env: napi_env,
+  cbinfo: napi_callback_info,
+  cb_data: *mut *mut c_void,
+  cb_hint: *mut napi_value,
+  cb_name: *mut *mut u8,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  // TODO
   std::mem::forget(env);
   napi_ok
 }
@@ -311,7 +373,7 @@ fn main() {
     .set(scope, exports_str.into(), exports.into())
     .unwrap();
 
-  let script = v8::String::new(scope, "exports.hello()").unwrap();
+  let script = v8::String::new(scope, "exports.hello('Rust')").unwrap();
 
   let script =
     v8::Script::compile(scope, script, None).expect("failed to compile script");
