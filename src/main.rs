@@ -272,15 +272,43 @@ pub unsafe extern "C" fn napi_get_undefined(
 pub unsafe extern "C" fn napi_get_value_string_utf8(
   env: napi_env,
   value: napi_value,
-  result: *mut u8,
-  result_len: *mut usize,
-  result_copied: *mut bool,
+  result: *mut c_char,
+  result_len: usize,
+  result_copied: *mut usize,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+
+  env.scope.enter();
   let value: v8::Local<v8::Value> = *(value as *mut v8::Local<v8::Value>);
-  todo!();
-  // std::mem::forget(env);
-  // napi_ok
+  env.scope.exit();
+
+  env.scope.enter();
+  // TODO: check if this is string
+  let v8str = value.to_string(env.scope).unwrap();
+  env.scope.exit();
+  let string_len = v8str.utf8_length(env.scope);
+
+  env.scope.enter();
+  let string = v8str.to_rust_string_lossy(env.scope);
+  env.scope.exit();
+
+  let string = string.as_bytes();
+  let string = string.as_ptr();
+  let string = string as *const c_char;
+
+  *result_copied = string_len;
+
+  if result_len < string_len {
+    return napi_ok;
+  }
+
+  if !result.is_null() {
+    std::ptr::copy_nonoverlapping(string, result, string_len as usize);
+    *result.offset(string_len as isize) = 0;
+  }
+
+  std::mem::forget(env);
+  napi_ok
 }
 
 #[no_mangle]
@@ -289,11 +317,12 @@ pub unsafe extern "C" fn napi_throw(
   error: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  let error = *(error as *mut v8::Local<v8::Value>);
 
   env.scope.enter();
   env
     .scope
-    .throw_exception(*(error as *mut v8::Local<v8::Value>));
+    .throw_exception(error);
   env.scope.exit();
 
   std::mem::forget(env);
@@ -337,7 +366,7 @@ pub unsafe extern "C" fn napi_get_cb_info(
     env.scope.enter();
     for i in 0..args.length() {
       let mut arg = args.get(i);
-      if i >= v_argc {
+      if i >= v_argc && v_argc != -1 {
         break;
       }
       v_argv[i as usize] = &mut arg as *mut _ as napi_value;
@@ -370,8 +399,22 @@ pub unsafe extern "C" fn napi_create_error(
   code: napi_value,
   msg: napi_value,
   result: *mut napi_value,
-) {
-  todo!()
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let code: v8::Local<v8::Value> = *(code as *mut v8::Local<v8::Value>);
+  let msg: v8::Local<v8::Value> = *(msg as *mut v8::Local<v8::Value>);
+
+  env.scope.enter();
+  let msg = msg.to_string(env.scope).unwrap();
+  env.scope.exit();
+
+  env.scope.enter();
+  let mut error = v8::Exception::error(env.scope, msg);
+  *result = &mut error as *mut _ as napi_value;
+  env.scope.exit();
+
+  std::mem::forget(env);
+  napi_ok
 }
 
 #[no_mangle]
