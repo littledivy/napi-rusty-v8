@@ -14,6 +14,9 @@ use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::ptr;
 
+use deno_core::v8;
+use deno_core::JsRuntime;
+
 struct Env<'a, 'b, 'c> {
   scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>,
 }
@@ -166,14 +169,14 @@ pub unsafe extern "C" fn napi_set_named_property(
   let mut env = &mut *(env as *mut Env);
   let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
   let name = CStr::from_ptr(name).to_str().unwrap();
-  let fnval = *(value as *const v8::Local<v8::Value>);
+  let value = *(value as *const v8::Local<v8::Value>);
 
   env.scope.enter();
   let name = v8::String::new(env.scope, name).unwrap();
   env.scope.exit();
 
   env.scope.enter();
-  object.set(env.scope, name.into(), fnval).unwrap();
+  object.set(env.scope, name.into(), value).unwrap();
   env.scope.exit();
 
   std::mem::forget(env);
@@ -320,9 +323,7 @@ pub unsafe extern "C" fn napi_throw(
   let error = *(error as *mut v8::Local<v8::Value>);
 
   env.scope.enter();
-  env
-    .scope
-    .throw_exception(error);
+  env.scope.throw_exception(error);
   env.scope.exit();
 
   std::mem::forget(env);
@@ -423,19 +424,17 @@ pub unsafe extern "C" fn napi_create_object() {
 }
 
 fn main() {
-  // Initialize V8.
-  let platform = v8::new_default_platform(0, false).make_shared();
-  v8::V8::initialize_platform(platform);
-  v8::V8::initialize();
+  let mut runtime = JsRuntime::new(Default::default());
 
-  let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
+  let isolate = runtime.v8_isolate();
 
-  let mut handle_scope = &mut v8::HandleScope::new(isolate);
-  let context = v8::Context::new(handle_scope);
-  let scope = &mut v8::ContextScope::new(handle_scope, context);
+  let mut scope = &mut runtime.handle_scope();
+  let context = scope.get_current_context();
+  let inner_scope = &mut v8::ContextScope::new(scope, context);
+  let global = context.global(inner_scope);
 
-  let mut exports = v8::Object::new(scope);
-  let mut env = Env { scope };
+  let mut exports = v8::Object::new(inner_scope);
+  let mut env = Env { scope: inner_scope };
 
   #[cfg(unix)]
   let flags = RTLD_LAZY;
@@ -472,17 +471,20 @@ fn main() {
     )
   };
 
-  let exports_str = v8::String::new(scope, "exports").unwrap();
+  let exports_str = v8::String::new(inner_scope, "exports").unwrap();
 
-  context
-    .global(scope)
-    .set(scope, exports_str.into(), exports.into())
+  global
+    .set(inner_scope, exports_str.into(), exports.into())
     .unwrap();
 
-  let script = v8::String::new(scope, "exports.hello('Rust')").unwrap();
+  let script = v8::String::new(inner_scope, 
+    r#"
+    exports.hello('Rust')
+    "#,
+  ).unwrap();
 
-  let script =
-    v8::Script::compile(scope, script, None).expect("failed to compile script");
+  let script = v8::Script::compile(inner_scope, script, None)
+    .expect("failed to compile script");
 
-  script.run(scope).unwrap();
+  script.run(inner_scope).unwrap();
 }

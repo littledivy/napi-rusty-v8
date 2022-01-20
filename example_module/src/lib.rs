@@ -6,5 +6,5 @@ extern crate napi_derive;
 #[napi]
 fn hello(name: String) -> String {
   println!("Hello, {}!", name);
-  return String::from("test");
+  String::from("World")
 }
