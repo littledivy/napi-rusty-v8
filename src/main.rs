@@ -125,7 +125,6 @@ pub unsafe extern "C" fn napi_define_properties(
     }
   }
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -149,7 +148,6 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   *result = &mut value as *mut _ as napi_value;
   env.scope.exit();
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -179,7 +177,6 @@ pub unsafe extern "C" fn napi_set_named_property(
   object.set(env.scope, name.into(), value).unwrap();
   env.scope.exit();
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -228,7 +225,6 @@ pub unsafe extern "C" fn napi_create_function(
 
       let value = unsafe { method(env_ptr, info_ptr) };
       let value = *(value as *mut v8::Local<v8::Value>);
-
       rv.set(value);
     },
   )
@@ -253,7 +249,6 @@ pub unsafe extern "C" fn napi_create_function(
   *result = &mut value as *mut _ as napi_value;
   env.scope.exit();
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -263,11 +258,12 @@ pub unsafe extern "C" fn napi_get_undefined(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  
   env.scope.enter();
   let mut value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
   *result = &mut value as *mut _ as napi_value;
   env.scope.exit();
-  std::mem::forget(env);
+
   napi_ok
 }
 
@@ -310,7 +306,6 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
     *result.offset(string_len as isize) = 0;
   }
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -326,7 +321,6 @@ pub unsafe extern "C" fn napi_throw(
   env.scope.throw_exception(error);
   env.scope.exit();
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -375,7 +369,6 @@ pub unsafe extern "C" fn napi_get_cb_info(
     env.scope.exit();
   }
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -414,7 +407,6 @@ pub unsafe extern "C" fn napi_create_error(
   *result = &mut error as *mut _ as napi_value;
   env.scope.exit();
 
-  std::mem::forget(env);
   napi_ok
 }
 
@@ -445,7 +437,7 @@ fn main() {
   #[cfg(unix)]
   let library = unsafe {
     Library::open(
-      Some("./example_module/target/debug/libexample_module.so"),
+      Some("./example_module/target/release/libexample_module.so"),
       flags,
     )
     .unwrap()
@@ -479,7 +471,11 @@ fn main() {
 
   let script = v8::String::new(inner_scope, 
     r#"
-    exports.hello('Rust')
+    function print(txt) {
+      Deno.core.print(txt + "\n");
+    }
+
+    print(exports.hello("Rust"));
     "#,
   ).unwrap();
 
