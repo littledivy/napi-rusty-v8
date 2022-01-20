@@ -4,7 +4,7 @@ extern crate napi_derive;
 // use napi::bindgen_prelude::*;
 
 #[napi]
-fn hello() -> String {
+fn hello() {
   println!("Hello from Rust!");
-  return String::from("world");
+  // return String::from("world");
 }

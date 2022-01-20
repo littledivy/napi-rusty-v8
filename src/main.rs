@@ -56,9 +56,11 @@ pub unsafe extern "C" fn napi_define_properties(
 
   let object: v8::Local<v8::Object> = *(obj as *mut v8::Local<v8::Object>);
   let properties = std::slice::from_raw_parts(properties, property_count);
+  
   for property in properties {
     let name = CStr::from_ptr(property.utf8name).to_str().unwrap();
     let name = v8::String::new(env.scope, name).unwrap();
+
     if let Some(method) = property.method {
       let method_ptr =
         std::mem::transmute::<napi_callback, *mut c_void>(Some(method));
@@ -96,6 +98,7 @@ pub unsafe extern "C" fn napi_define_properties(
     }
   }
 
+  std::mem::forget(env);
   napi_ok
 }
 
@@ -112,14 +115,15 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   let v8str = v8::String::new(env.scope, string).unwrap();
   let mut value: v8::Local<v8::Value> = v8str.into();
   *result = &mut value as *mut _ as napi_value;
+  std::mem::forget(env);
   napi_ok
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_module_register() -> napi_status {
-  // no-op.
-  napi_ok
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn napi_module_register() -> napi_status {
+//   // no-op.
+//   napi_ok
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn napi_set_named_property(
@@ -129,11 +133,17 @@ pub unsafe extern "C" fn napi_set_named_property(
   value: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  env.scope.enter();
   let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
   let name = CStr::from_ptr(name).to_str().unwrap();
   let fnval = *(value as *const v8::Local<v8::Value>);
   let name = v8::String::new(env.scope, name).unwrap();
+  // seg faults when both are commented out...?
+  // println!("a"); // remove comment to get "TypeError: exports.hello is not a function"
   object.set(env.scope, name.into(), fnval).unwrap();
+  // println!("b"); // remove comment to make it work
+  env.scope.exit();
+  std::mem::forget(env);
   napi_ok
 }
 
@@ -147,6 +157,7 @@ pub unsafe extern "C" fn napi_create_function(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  env.scope.enter();
 
   let fn_ptr = std::mem::transmute::<napi_callback, *mut c_void>(cb);
   let fn_ptr = v8::External::new(env.scope, fn_ptr);
@@ -188,7 +199,20 @@ pub unsafe extern "C" fn napi_create_function(
   // Why does it only work when I comment this out??
   // println!("a");
   *result = &mut value as *mut _ as napi_value;
+  env.scope.exit();
+  std::mem::forget(env);
+  napi_ok
+}
 
+#[no_mangle]
+pub unsafe extern "C" fn napi_get_undefined(
+  env: napi_env,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let mut value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
+  *result = &mut value as *mut _ as napi_value;
+  std::mem::forget(env);
   napi_ok
 }
 
@@ -196,6 +220,7 @@ pub unsafe extern "C" fn napi_create_function(
 pub unsafe extern "C" fn napi_throw(env: napi_env, error: napi_value) -> napi_status {
   let mut env = &mut *(env as *mut Env);
   println!("stub: napi_throw");
+  std::mem::forget(env);
   napi_ok
 }
 
@@ -221,7 +246,7 @@ pub unsafe extern "C" fn napi_create_error(
   msg: napi_value,
   result: *mut napi_value,
 ) {
-  println!("stub: napi_create_error");
+  todo!()
 }
 
 #[no_mangle]
@@ -236,6 +261,14 @@ fn main() {
   v8::V8::initialize();
 
   let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
+
+  let mut handle_scope = &mut v8::HandleScope::new(isolate);
+  let context = v8::Context::new(handle_scope);
+  let scope = &mut v8::ContextScope::new(handle_scope, context);
+
+  let mut exports = v8::Object::new(scope);
+  let mut env = Env { scope };
+
   #[cfg(unix)]
   let flags = RTLD_LAZY;
   #[cfg(not(unix))]
@@ -250,24 +283,19 @@ fn main() {
     )
     .unwrap()
   };
+  
   #[cfg(not(unix))]
   let library = unsafe {
     Library::load_with_flags(
-      "./example_module/target/debug/example_module.dll",
+      "./example_module/target/release/example_module.dll",
       flags,
     )
     .unwrap()
   };
+
   let init = unsafe {
     library.get::<unsafe extern "C" fn(env: napi_env, exports: napi_value) -> napi_value>(b"napi_register_module_v1").unwrap()
   };
-
-  let mut handle_scope = &mut v8::HandleScope::new(isolate);
-  let context = v8::Context::new(handle_scope);
-  let scope = &mut v8::ContextScope::new(handle_scope, context);
-
-  let mut exports = v8::Object::new(scope);
-  let mut env = Env { scope };
   
   unsafe {
     init(
@@ -282,7 +310,7 @@ fn main() {
     .global(scope)
     .set(scope, exports_str.into(), exports.into())
     .unwrap();
-  
+
   let script = v8::String::new(scope, "exports.hello()").unwrap();
 
   let script =
