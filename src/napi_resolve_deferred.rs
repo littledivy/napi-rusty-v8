@@ -10,6 +10,8 @@ pub unsafe extern "C" fn napi_resolve_deferred(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
   let resolver: v8::Local<v8::PromiseResolver> = std::mem::transmute(deferred);
-  resolver.resolve(env.scope, std::mem::transmute(result)).unwrap();
+  resolver
+    .resolve(env.scope, std::mem::transmute(result))
+    .unwrap();
   napi_ok
 }
