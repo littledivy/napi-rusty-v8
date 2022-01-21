@@ -39,6 +39,17 @@ pub mod napi_set_named_property;
 pub mod napi_throw;
 pub mod napi_throw_error;
 pub mod napi_wrap;
+pub mod napi_create_promise;
+pub mod napi_resolve_deferred;
+pub mod napi_reject_deferred;
+pub mod napi_is_promise;
+pub mod napi_release_threadsafe_function;
+pub mod napi_create_external_buffer;
+pub mod napi_create_threadsafe_function;
+pub mod napi_delete_reference;
+pub mod napi_call_threadsafe_function;
+pub mod napi_add_env_cleanup_hook;
+pub mod napi_get_reference_value;
 
 use deno_core::JsRuntime;
 
@@ -109,6 +120,8 @@ fn main() {
 
     print(exports.hello("Rust"));
     print(exports.add(1, 2));
+    // For testing async
+    // print(exports.readFileAsync("exports.def"));
     "#,
   )
   .unwrap();

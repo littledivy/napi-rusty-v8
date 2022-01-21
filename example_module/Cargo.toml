@@ -7,9 +7,10 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = "2"
-napi-derive = "2"
-napi-sys = "2"
+napi = { version = "2", features = ["napi8", "tokio_rt", "async"] }
+napi-derive = { version = "2", features = ["type-def"] }
+futures = "0.3"
+tokio = { version = "1", features = ["default", "fs"] }
 
 [build-dependencies]
 napi-build = "1"
