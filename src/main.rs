@@ -10,6 +10,7 @@ use libloading::os::unix::*;
 #[cfg(windows)]
 use libloading::os::windows::*;
 
+pub mod util;
 pub mod callback_info;
 pub mod env;
 pub mod ffi;
