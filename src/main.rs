@@ -13,6 +13,7 @@ use libloading::os::windows::*;
 pub mod callback_info;
 pub mod env;
 pub mod ffi;
+pub mod napi_adjust_external_memory;
 pub mod napi_create_bigint_int64;
 pub mod napi_create_bigint_uint64;
 pub mod napi_create_bigint_words;
@@ -27,14 +28,17 @@ pub mod napi_create_string_utf8;
 pub mod napi_create_uint32;
 pub mod napi_define_class;
 pub mod napi_define_properties;
+pub mod napi_get_and_clear_last_exception;
 pub mod napi_get_cb_info;
 pub mod napi_get_undefined;
 pub mod napi_get_value_int32;
 pub mod napi_get_value_string_utf8;
 pub mod napi_module_register;
+pub mod napi_new_instance;
 pub mod napi_set_named_property;
 pub mod napi_throw;
 pub mod napi_throw_error;
+pub mod napi_wrap;
 
 use deno_core::JsRuntime;
 
