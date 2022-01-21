@@ -154,11 +154,9 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   let string = std::slice::from_raw_parts(string, length);
   let string = std::str::from_utf8(string).unwrap();
 
-  env.scope.enter();
   let v8str = v8::String::new(env.scope, string).unwrap();
   let value: v8::Local<v8::Value> = v8str.into();
   *result = std::mem::transmute(value);
-  env.scope.exit();
 
   napi_ok
 }
@@ -177,7 +175,6 @@ pub unsafe extern "C" fn napi_set_named_property(
   value: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  env.scope.enter();
 
   let object: v8::Local<v8::Object> = std::mem::transmute(object);
   let name = CStr::from_ptr(name).to_str().unwrap();
@@ -185,8 +182,7 @@ pub unsafe extern "C" fn napi_set_named_property(
 
   let name = v8::String::new(env.scope, name).unwrap();
   object.set(env.scope, name.into(), value).unwrap();
-  env.scope.exit();
-
+  
   napi_ok
 }
 
@@ -201,7 +197,6 @@ pub unsafe extern "C" fn napi_create_function(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
 
-  env.scope.enter();
   let method_ptr = v8::External::new(env.scope, std::mem::transmute(cb));
 
   let function = v8::Function::builder(
@@ -249,7 +244,6 @@ pub unsafe extern "C" fn napi_create_function(
 
   let value: v8::Local<v8::Value> = function.into();
   *result = std::mem::transmute(value);
-  env.scope.exit();
 
   napi_ok
 }
@@ -260,12 +254,8 @@ pub unsafe extern "C" fn napi_get_undefined(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-
-  env.scope.enter();
   let value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
   *result = std::mem::transmute(value);
-  env.scope.exit();
-
   napi_ok
 }
 
@@ -279,15 +269,12 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
 
-  env.scope.enter();
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
 
   if !value.is_string() && !value.is_string_object() {
-    env.scope.exit();
     return napi_string_expected;
   }
 
-  // TODO: check if this is string
   let v8str = value.to_string(env.scope).unwrap();
   let string_len = v8str.utf8_length(env.scope);
 
@@ -300,7 +287,6 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
   *result_copied = string_len;
 
   if result_len < string_len {
-    env.scope.exit();
     return napi_ok;
   }
 
@@ -309,7 +295,6 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
     *result.offset(string_len as isize) = 0;
   }
 
-  env.scope.exit();
   napi_ok
 }
 
@@ -319,13 +304,8 @@ pub unsafe extern "C" fn napi_throw(
   error: napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-
-  env.scope.enter();
   let error = std::mem::transmute(error);
-
   env.scope.throw_exception(error);
-  env.scope.exit();
-
   napi_ok
 }
 
@@ -340,7 +320,6 @@ pub unsafe extern "C" fn napi_get_cb_info(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
 
-  env.scope.enter();
   let cbinfo: &CallbackInfo = &*(cbinfo as *const CallbackInfo);
   let args = &*(cbinfo.args as *const v8::FunctionCallbackArguments);
 
@@ -368,7 +347,6 @@ pub unsafe extern "C" fn napi_get_cb_info(
     }
   }
 
-  env.scope.exit();
   napi_ok
 }
 
@@ -395,7 +373,7 @@ pub unsafe extern "C" fn napi_create_error(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  env.scope.enter();
+  
   let code: v8::Local<v8::Value> = std::mem::transmute(code);
   let msg: v8::Local<v8::Value> = std::mem::transmute(msg);
 
@@ -403,7 +381,6 @@ pub unsafe extern "C" fn napi_create_error(
 
   let error = v8::Exception::error(env.scope, msg);
   *result = std::mem::transmute(error);
-  env.scope.exit();
 
   napi_ok
 }
@@ -411,6 +388,110 @@ pub unsafe extern "C" fn napi_create_error(
 #[no_mangle]
 pub unsafe extern "C" fn napi_create_object() {
   todo!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_int32(
+  env: napi_env,
+  value: i32,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::Number::new(env.scope, value as f64).into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_uint32(
+  env: napi_env,
+  value: u32,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::Number::new(env.scope, value as f64).into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_int64(
+  env: napi_env,
+  value: i64,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::Number::new(env.scope, value as f64).into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_double(
+  env: napi_env,
+  value: f64,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::Number::new(env.scope, value).into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_bigint_int64(
+  env: napi_env,
+  value: i64,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::BigInt::new_from_i64(env.scope, value).into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_bigint_uint64(
+  env: napi_env,
+  value: u64,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::BigInt::new_from_u64(env.scope, value).into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_create_bigint_words(
+  env: napi_env,
+  sign_bit: bool,
+  words: *const u64,
+  word_count: usize,
+  result: *mut napi_value,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = v8::BigInt::new_from_words(
+    env.scope,
+    sign_bit,
+    std::slice::from_raw_parts(words, word_count),
+  )
+  .unwrap()
+  .into();
+  *result = std::mem::transmute(value);
+  napi_ok
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn napi_get_value_int32(
+  env: napi_env,
+  value: napi_value,
+  result: *mut i32,
+) -> napi_status {
+  let mut env = &mut *(env as *mut Env);
+  let value: v8::Local<v8::Value> = std::mem::transmute(value);
+  *result = value.int32_value(env.scope).unwrap();
+  napi_ok
 }
 
 fn main() {
@@ -475,6 +556,7 @@ fn main() {
     }
 
     print(exports.hello("Rust"));
+    print(exports.add(1, 2));
     "#,
   )
   .unwrap();
