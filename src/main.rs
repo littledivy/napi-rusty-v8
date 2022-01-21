@@ -50,6 +50,10 @@ pub mod napi_set_named_property;
 pub mod napi_throw;
 pub mod napi_throw_error;
 pub mod napi_wrap;
+pub mod napi_get_value_bool;
+pub mod napi_get_property_names;
+pub mod napi_get_named_property;
+pub mod napi_typeof;
 
 use deno_core::JsRuntime;
 
@@ -79,7 +83,8 @@ fn main() {
   #[cfg(unix)]
   let library = unsafe {
     Library::open(
-      Some("./example_module/target/release/libexample_module.so"),
+      // Some("./example_module/target/release/libexample_module.so"),
+      Some("./testdata/node_modules/dprint-node/dprint-node.linux-x64-gnu.node"),
       flags,
     )
     .unwrap()
