@@ -54,6 +54,7 @@ pub mod napi_get_value_bool;
 pub mod napi_get_property_names;
 pub mod napi_get_named_property;
 pub mod napi_typeof;
+pub mod napi_unwrap;
 
 use deno_core::JsRuntime;
 
@@ -125,6 +126,13 @@ fn main() {
 
     print(exports.hello("Rust"));
     print(exports.add(1, 2));
+
+    const point = new exports.Point(1, 2);
+    print("point.x: " + point.get_x());
+    print("point.y: " + point.get_y());
+    point.set_x(3);
+    print("point.x: " + point.get_x());
+
     // For testing async
     print(exports.readFileAsync("exports.def"));
     "#,
