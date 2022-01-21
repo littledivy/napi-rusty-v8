@@ -1,5 +1,10 @@
 [target.x86_64-unknown-linux-gnu]
-rustflags = [ "-C", "link-args=-Wl,-export-dynamic" ]
+rustflags = [
+  "-C",
+  "link-args=-Wl,-export-dynamic",
+  "-C",
+  "linker=clang",
+]
 
 [target.x86_64-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]

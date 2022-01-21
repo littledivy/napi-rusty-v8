@@ -33,6 +33,19 @@ pub const napi_arraybuffer_expected: napi_status = 19;
 pub const napi_detachable_arraybuffer_expected: napi_status = 20;
 pub const napi_would_deadlock: napi_status = 21;
 
+pub type napi_valuetype = i32;
+
+pub const napi_undefined: napi_valuetype = 0;
+pub const napi_null: napi_valuetype = 1;
+pub const napi_boolean: napi_valuetype = 2;
+pub const napi_number: napi_valuetype = 3;
+pub const napi_string: napi_valuetype = 4;
+pub const napi_symbol: napi_valuetype = 5;
+pub const napi_object: napi_valuetype = 6;
+pub const napi_function: napi_valuetype = 7;
+pub const napi_external: napi_valuetype = 8;
+pub const napi_bigint: napi_valuetype = 9;
+
 pub type napi_callback =
   unsafe extern "C" fn(env: napi_env, info: napi_callback_info) -> napi_value;
 

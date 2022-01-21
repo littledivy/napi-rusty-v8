@@ -55,6 +55,53 @@ pub mod napi_get_property_names;
 pub mod napi_get_named_property;
 pub mod napi_typeof;
 pub mod napi_unwrap;
+pub mod napi_get_version;
+pub mod napi_get_null;
+pub mod napi_get_global;
+pub mod napi_get_boolean;
+pub mod napi_get_value_double;
+pub mod napi_create_array_with_length;
+pub mod napi_get_array_length;
+pub mod napi_get_new_target;
+pub mod napi_coerce_to_object;
+pub mod napi_coerce_to_string;
+pub mod napi_is_exception_pending;
+pub mod napi_get_value_external;
+pub mod napi_close_escapable_handle_scope;
+pub mod napi_open_escapable_handle_scope;
+pub mod napi_open_handle_scope;
+pub mod napi_close_handle_scope;
+pub mod napi_is_arraybuffer;
+pub mod napi_is_buffer;
+pub mod napi_is_error;
+pub mod napi_is_array;
+pub mod napi_create_type_error;
+pub mod napi_create_range_error;
+pub mod napi_create_arraybuffer;
+pub mod napi_get_arraybuffer_info;
+pub mod napi_create_buffer;
+pub mod napi_get_buffer_info;
+pub mod napi_create_external;
+pub mod napi_call_function;
+pub mod napi_set_property;
+pub mod napi_get_property;
+pub mod napi_set_element;
+pub mod napi_get_element;
+pub mod napi_escape_handle;
+pub mod napi_reference_ref;
+pub mod napi_reference_unref;
+pub mod napi_strict_equals;
+pub mod napi_create_external_arraybuffer;
+pub mod napi_run_script;
+pub mod napi_ref_threadsafe_function;
+pub mod napi_unref_threadsafe_function;
+pub mod napi_create_date;
+pub mod napi_get_date_value;
+pub mod napi_is_date;
+pub mod napi_get_all_property_names;
+pub mod napi_get_instance_data;
+pub mod napi_set_instance_data;
+pub mod napi_get_value_uint32;
 
 use deno_core::JsRuntime;
 
@@ -124,17 +171,21 @@ fn main() {
       Deno.core.print(txt + "\n");
     }
 
-    print(exports.hello("Rust"));
-    print(exports.add(1, 2));
+    print(Object.keys(exports).join(", "));
 
-    const point = new exports.Point(1, 2);
-    print("point.x: " + point.get_x());
-    print("point.y: " + point.get_y());
-    point.set_x(3);
-    print("point.x: " + point.get_x());
+    print(exports.format("hello.js", "function x(){let a=1;return a;}"));
+
+    // print(exports.hello("Rust"));
+    // print(exports.add(1, 2));
+
+    // const point = new exports.Point(1, 2);
+    // print("point.x: " + point.get_x());
+    // print("point.y: " + point.get_y());
+    // point.set_x(3);
+    // print("point.x: " + point.get_x());
 
     // For testing async
-    print(exports.readFileAsync("exports.def"));
+    // print(exports.readFileAsync("exports.def"));
     "#,
   )
   .unwrap();
