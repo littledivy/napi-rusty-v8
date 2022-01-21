@@ -4,6 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "dprint-node": "^1.0.5"
+    "@swc/cli": "^0.1.55",
+    "@swc/core": "^1.2.133",
+    "dprint-node": "^1.0.5",
+    "skia-canvas": "^0.9.28"
   }
 }

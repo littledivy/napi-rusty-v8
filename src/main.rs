@@ -102,6 +102,10 @@ pub mod napi_get_all_property_names;
 pub mod napi_get_instance_data;
 pub mod napi_set_instance_data;
 pub mod napi_get_value_uint32;
+pub mod napi_create_async_work;
+pub mod napi_queue_async_work;
+pub mod napi_delete_async_work;
+pub mod napi_cancel_async_work;
 
 use deno_core::JsRuntime;
 
@@ -132,7 +136,7 @@ fn main() {
   let library = unsafe {
     Library::open(
       // Some("./example_module/target/release/libexample_module.so"),
-      Some("./testdata/node_modules/dprint-node/dprint-node.linux-x64-gnu.node"),
+      Some("./testdata/node_modules/@swc/core-linux-x64-gnu/swc.linux-x64-gnu.node"),
       flags,
     )
     .unwrap()
@@ -148,15 +152,19 @@ fn main() {
   };
 
   let init = unsafe {
-    library.get::<unsafe extern "C" fn(env: napi_env, exports: napi_value) -> napi_value>(b"napi_register_module_v1").unwrap()
+    library.get::<unsafe extern "C" fn(env: napi_env, exports: napi_value) -> napi_value>(b"napi_register_module_v1")
   };
 
-  unsafe {
-    init(
-      &mut env as *mut _ as *mut c_void,
-      std::mem::transmute(exports),
-    )
-  };
+  if let Ok(init) = init {
+    unsafe {
+      init(
+        &mut env as *mut _ as *mut c_void,
+        std::mem::transmute(exports),
+      )
+    };
+  } else {
+    eprintln!("Failed to init module! napi_register_module_v1 symbol not found");
+  }
 
   let exports_str = v8::String::new(inner_scope, "exports").unwrap();
 
@@ -173,7 +181,7 @@ fn main() {
 
     print(Object.keys(exports).join(", "));
 
-    print(exports.format("hello.js", "function x(){let a=1;return a;}"));
+    // print(exports.format("hello.js", "function x(){let a=1;return a;}"));
 
     // print(exports.hello("Rust"));
     // print(exports.add(1, 2));
