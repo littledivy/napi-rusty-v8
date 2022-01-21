@@ -2,6 +2,7 @@
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 #![allow(non_upper_case_globals)]
+#![allow(dead_code)]
 
 #[cfg(unix)]
 use libloading::os::unix::*;
@@ -27,6 +28,27 @@ type napi_value = *mut c_void;
 type napi_callback_info = *mut c_void;
 
 const napi_ok: napi_status = 0;
+const napi_invalid_arg: napi_status = 1;
+const napi_object_expected: napi_status = 2;
+const napi_string_expected: napi_status = 3;
+const napi_name_expected: napi_status = 4;
+const napi_function_expected: napi_status = 5;
+const napi_number_expected: napi_status = 6;
+const napi_boolean_expected: napi_status = 7;
+const napi_array_expected: napi_status = 8;
+const napi_generic_failure: napi_status = 9;
+const napi_pending_exception: napi_status = 10;
+const napi_cancelled: napi_status = 11;
+const napi_escape_called_twice: napi_status = 12;
+const napi_handle_scope_mismatch: napi_status = 13;
+const napi_callback_scope_mismatch: napi_status = 14;
+const napi_queue_full: napi_status = 15;
+const napi_closing: napi_status = 16;
+const napi_bigint_expected: napi_status = 17;
+const napi_date_expected: napi_status = 18;
+const napi_arraybuffer_expected: napi_status = 19;
+const napi_detachable_arraybuffer_expected: napi_status = 20;
+const napi_would_deadlock: napi_status = 21;
 
 pub type napi_callback =
   unsafe extern "C" fn(env: napi_env, info: napi_callback_info) -> napi_value;
@@ -66,7 +88,7 @@ pub unsafe extern "C" fn napi_define_properties(
   let mut env = &mut *(env as *mut Env);
   env.scope.enter();
 
-  let object: v8::Local<v8::Object> = *(obj as *mut v8::Local<v8::Object>);
+  let object: v8::Local<v8::Object> = std::mem::transmute(obj);
   let properties = std::slice::from_raw_parts(properties, property_count);
 
   for property in properties {
@@ -103,7 +125,7 @@ pub unsafe extern "C" fn napi_define_properties(
           let info_ptr = &mut info as *mut _ as *mut c_void;
 
           let value = unsafe { method(env_ptr, info_ptr) };
-          let value = *(value as *mut v8::Local<v8::Value>);
+          let value = std::mem::transmute(value);
 
           rv.set(value);
         },
@@ -128,14 +150,14 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+
   let string = std::slice::from_raw_parts(string, length);
   let string = std::str::from_utf8(string).unwrap();
 
   env.scope.enter();
   let v8str = v8::String::new(env.scope, string).unwrap();
-
-  let mut value: v8::Local<v8::Value> = v8str.into();
-  *result = &mut value as *mut _ as napi_value;
+  let value: v8::Local<v8::Value> = v8str.into();
+  *result = std::mem::transmute(value);
   env.scope.exit();
 
   napi_ok
@@ -156,9 +178,10 @@ pub unsafe extern "C" fn napi_set_named_property(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
   env.scope.enter();
-  let object: v8::Local<v8::Object> = *(object as *mut v8::Local<v8::Object>);
+
+  let object: v8::Local<v8::Object> = std::mem::transmute(object);
   let name = CStr::from_ptr(name).to_str().unwrap();
-  let value = *(value as *const v8::Local<v8::Value>);
+  let value: v8::Local<v8::Value> = std::mem::transmute(value);
 
   let name = v8::String::new(env.scope, name).unwrap();
   object.set(env.scope, name.into(), value).unwrap();
@@ -208,7 +231,7 @@ pub unsafe extern "C" fn napi_create_function(
       let info_ptr = &mut info as *mut _ as *mut c_void;
 
       let value = unsafe { method(env_ptr, info_ptr) };
-      let value = *(value as *mut v8::Local<v8::Value>);
+      let value = std::mem::transmute(value);
       rv.set(value);
     },
   )
@@ -224,8 +247,8 @@ pub unsafe extern "C" fn napi_create_function(
     function.set_name(v8str);
   }
 
-  let mut value: v8::Local<v8::Value> = function.into();
-  *result = &mut value as *mut _ as napi_value;
+  let value: v8::Local<v8::Value> = function.into();
+  *result = std::mem::transmute(value);
   env.scope.exit();
 
   napi_ok
@@ -239,8 +262,8 @@ pub unsafe extern "C" fn napi_get_undefined(
   let mut env = &mut *(env as *mut Env);
 
   env.scope.enter();
-  let mut value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
-  *result = &mut value as *mut _ as napi_value;
+  let value: v8::Local<v8::Value> = v8::undefined(env.scope).into();
+  *result = std::mem::transmute(value);
   env.scope.exit();
 
   napi_ok
@@ -257,7 +280,12 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
   let mut env = &mut *(env as *mut Env);
 
   env.scope.enter();
-  let value: v8::Local<v8::Value> = *(value as *mut v8::Local<v8::Value>);
+  let value: v8::Local<v8::Value> = std::mem::transmute(value);
+
+  if !value.is_string() && !value.is_string_object() {
+    env.scope.exit();
+    return napi_string_expected;
+  }
 
   // TODO: check if this is string
   let v8str = value.to_string(env.scope).unwrap();
@@ -293,7 +321,7 @@ pub unsafe extern "C" fn napi_throw(
   let mut env = &mut *(env as *mut Env);
 
   env.scope.enter();
-  let error = *(error as *mut v8::Local<v8::Value>);
+  let error = std::mem::transmute(error);
 
   env.scope.throw_exception(error);
   env.scope.exit();
@@ -322,23 +350,21 @@ pub unsafe extern "C" fn napi_get_cb_info(
 
   if !this_arg.is_null() {
     let mut this: v8::Local<v8::Value> = args.this().into();
-    *this_arg = &mut this as *mut _ as napi_value;
+    *this_arg = std::mem::transmute(this);
   }
 
-  let mut v_argc = -1;
+  let len = args.length();
+  let mut v_argc = len;
   if !argc.is_null() {
     v_argc = *argc;
-    *argc = args.length();
+    *argc = len;
   }
 
   if !argv.is_null() {
     let mut v_argv = std::slice::from_raw_parts_mut(argv, v_argc as usize);
-    for i in 0..args.length() {
+    for i in 0..v_argc {
       let mut arg = args.get(i);
-      if i >= v_argc && v_argc != -1 {
-        break;
-      }
-      v_argv[i as usize] = &mut arg as *mut _ as napi_value;
+      v_argv[i as usize] = std::mem::transmute(arg);
     }
   }
 
@@ -370,13 +396,13 @@ pub unsafe extern "C" fn napi_create_error(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
   env.scope.enter();
-  let code: v8::Local<v8::Value> = *(code as *mut v8::Local<v8::Value>);
-  let msg: v8::Local<v8::Value> = *(msg as *mut v8::Local<v8::Value>);
+  let code: v8::Local<v8::Value> = std::mem::transmute(code);
+  let msg: v8::Local<v8::Value> = std::mem::transmute(msg);
 
   let msg = msg.to_string(env.scope).unwrap();
 
-  let mut error = v8::Exception::error(env.scope, msg);
-  *result = &mut error as *mut _ as napi_value;
+  let error = v8::Exception::error(env.scope, msg);
+  *result = std::mem::transmute(error);
   env.scope.exit();
 
   napi_ok
@@ -431,7 +457,7 @@ fn main() {
   unsafe {
     init(
       &mut env as *mut _ as *mut c_void,
-      &mut exports as *mut _ as *mut c_void,
+      std::mem::transmute(exports),
     )
   };
 
