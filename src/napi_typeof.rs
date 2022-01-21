@@ -9,6 +9,10 @@ pub unsafe extern "C" fn napi_typeof(
   result: *mut napi_valuetype,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
+  if value.is_null() {
+    *result = napi_undefined;
+    return napi_ok;
+  }
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
   if value.is_undefined() {
     *result = napi_undefined;

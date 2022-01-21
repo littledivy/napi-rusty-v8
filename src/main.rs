@@ -136,7 +136,7 @@ fn main() {
   let library = unsafe {
     Library::open(
       // Some("./example_module/target/release/libexample_module.so"),
-      Some("./testdata/node_modules/@swc/core-linux-x64-gnu/swc.linux-x64-gnu.node"),
+      Some("./testdata/node_modules/dprint-node/dprint-node.linux-x64-gnu.node"),
       flags,
     )
     .unwrap()
@@ -179,9 +179,16 @@ fn main() {
       Deno.core.print(txt + "\n");
     }
 
-    print(Object.keys(exports).join(", "));
-
-    // print(exports.format("hello.js", "function x(){let a=1;return a;}"));
+    print(
+      exports.format(
+        "hello.js",
+        "function x(){let a=1;return a;}",
+        {
+          lineWidth: 100,
+          semiColons: "asi",
+        },
+      ),
+    );
 
     // print(exports.hello("Rust"));
     // print(exports.add(1, 2));

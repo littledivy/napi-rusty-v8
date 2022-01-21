@@ -8,7 +8,7 @@ pub unsafe extern "C" fn napi_get_global(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  let value: v8::Local<v8::Value> = v8::null(env.scope).into();
+  let value: v8::Local<v8::Value> = v8::Object::new(env.scope).into();
   *result = std::mem::transmute(value);
   napi_ok
 }
