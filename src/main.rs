@@ -50,6 +50,7 @@ pub mod napi_set_named_property;
 pub mod napi_throw;
 pub mod napi_throw_error;
 pub mod napi_wrap;
+pub mod napi_unwrap;
 
 use deno_core::JsRuntime;
 
@@ -120,6 +121,13 @@ fn main() {
 
     print(exports.hello("Rust"));
     print(exports.add(1, 2));
+
+    const point = new exports.Point(1, 2);
+    print("point.x: " + point.get_x());
+    print("point.y: " + point.get_y());
+    point.set_x(3);
+    print("point.x: " + point.get_x());
+
     // For testing async
     print(exports.readFileAsync("exports.def"));
     "#,
