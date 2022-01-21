@@ -163,11 +163,11 @@ pub unsafe extern "C" fn napi_create_string_utf8(
   napi_ok
 }
 
-// #[no_mangle]
-// pub unsafe extern "C" fn napi_module_register() -> napi_status {
-//   // no-op.
-//   napi_ok
-// }
+#[no_mangle]
+pub unsafe extern "C" fn napi_module_register() -> napi_status {
+  // no-op.
+  napi_ok
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn napi_set_named_property(
