@@ -13,7 +13,7 @@ pub unsafe extern "C" fn napi_throw_error(
   // let code = CStr::from_ptr(code).to_str().unwrap();
   let msg = CStr::from_ptr(msg).to_str().unwrap();
 
-  println!("napi_throw_error: {:?}", msg);
+  eprintln!("napi_throw_error: {}", msg);
 
   // let code = v8::String::new(env.scope, code).unwrap();
   let msg = v8::String::new(env.scope, msg).unwrap();
