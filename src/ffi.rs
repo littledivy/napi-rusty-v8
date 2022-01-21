@@ -49,6 +49,12 @@ pub const napi_bigint: napi_valuetype = 9;
 pub type napi_callback =
   unsafe extern "C" fn(env: napi_env, info: napi_callback_info) -> napi_value;
 
+pub type napi_finalize_callback = unsafe extern "C" fn(
+  env: napi_env,
+  data: *mut c_void,
+  finalize_hint: *mut c_void,
+);
+
 // default = 0
 pub type napi_property_attributes = i32;
 
