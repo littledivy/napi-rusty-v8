@@ -6,11 +6,3 @@ edition = "2021"
 [dependencies]
 deno_core = "0.114.0"
 libloading = "0.7"
-
-[profile.dev]
-codegen-units = 1
-incremental = false
-# for some reason this does not work when debug info is emitted
-# (ends up in segmentation fault)
-debug = false
-lto = true
