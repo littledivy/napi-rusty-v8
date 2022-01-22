@@ -148,11 +148,7 @@ fn main() {
         let library = match unsafe { Library::open(Some(&path), flags) } {
           Ok(lib) => lib,
           Err(e) => {
-            let message = v8::String::new(
-              scope,
-              &e.to_string(),
-            )
-            .unwrap();
+            let message = v8::String::new(scope, &e.to_string()).unwrap();
             let error = v8::Exception::type_error(scope, message);
             scope.throw_exception(error);
             return;
@@ -163,11 +159,7 @@ fn main() {
         let library = match unsafe { Library::load_with_flags(&path, flags) } {
           Ok(lib) => lib,
           Err(e) => {
-            let message = v8::String::new(
-              scope,
-              &e.to_string(),
-            )
-            .unwrap();
+            let message = v8::String::new(scope, &e.to_string()).unwrap();
             let error = v8::Exception::type_error(scope, message);
             scope.throw_exception(error);
             return;
@@ -212,8 +204,14 @@ fn main() {
       .unwrap();
   }
 
-  let filename = std::env::args().nth(1).unwrap_or(String::from("test.js"));
+  let filename = std::env::args()
+    .nth(1)
+    .unwrap_or(String::from("./test/example.js"));
   let source_code = std::fs::read_to_string(&filename).unwrap();
+
+  runtime
+    .execute_script("core.js", include_str!("core.js"))
+    .unwrap();
 
   match runtime.execute_script(&filename, &source_code) {
     Ok(_) => {}
