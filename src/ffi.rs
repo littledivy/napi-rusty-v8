@@ -9,6 +9,9 @@ pub type napi_value = *mut c_void;
 pub type napi_callback_info = *mut c_void;
 pub type napi_deferred = *mut c_void;
 pub type napi_ref = *mut c_void;
+pub type napi_threadsafe_function = *mut c_void;
+pub type napi_handle_scope = *mut c_void;
+pub type napi_escapable_handle_scope = *mut c_void;
 
 pub const napi_ok: napi_status = 0;
 pub const napi_invalid_arg: napi_status = 1;
