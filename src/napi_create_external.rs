@@ -6,7 +6,7 @@ use deno_core::v8;
 pub unsafe extern "C" fn napi_create_external(
   env: napi_env,
   value: *mut c_void,
-  finalize_cb: napi_finalize_callback,
+  finalize_cb: napi_finalize,
   finalize_hint: *mut c_void,
   result: *mut napi_value,
 ) -> napi_status {
