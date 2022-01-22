@@ -11,7 +11,6 @@ pub unsafe extern "C" fn napi_define_properties(
   properties: *const napi_property_descriptor,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  env.scope.enter();
 
   let object: v8::Local<v8::Object> = std::mem::transmute(obj);
   let properties = std::slice::from_raw_parts(properties, property_count);
@@ -63,6 +62,5 @@ pub unsafe extern "C" fn napi_define_properties(
     }
   }
 
-  env.scope.exit();
   napi_ok
 }
