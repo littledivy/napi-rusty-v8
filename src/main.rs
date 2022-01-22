@@ -173,36 +173,11 @@ fn main() {
     .set(inner_scope, exports_str.into(), exports.into())
     .unwrap();
 
+  let source = std::fs::read_to_string(std::env::args().nth(1).unwrap_or(String::from("test.js"))).unwrap();
+
   let script = v8::String::new(
     inner_scope,
-    r#"
-    function print(txt) {
-      Deno.core.print(txt + "\n");
-    }
-
-    print(
-      exports.format(
-        "hello.js",
-        "function x(){let a=1;return a;}",
-        {
-          lineWidth: 100,
-          semiColons: "asi",
-        },
-      ),
-    );
-
-    // print(exports.hello("Rust"));
-    // print(exports.add(1, 2));
-
-    // const point = new exports.Point(1, 2);
-    // print("point.x: " + point.get_x());
-    // print("point.y: " + point.get_y());
-    // point.set_x(3);
-    // print("point.x: " + point.get_x());
-
-    // For testing async
-    // print(exports.readFileAsync("exports.def"));
-    "#,
+    &source,
   )
   .unwrap();
 
