@@ -145,11 +145,34 @@ fn main() {
 
         // Initializer callback.
         #[cfg(unix)]
-        let library = unsafe { Library::open(Some(&path), flags).unwrap() };
+        let library = match unsafe { Library::open(Some(&path), flags) } {
+          Ok(lib) => lib,
+          Err(e) => {
+            let message = v8::String::new(
+              scope,
+              &e.to_string(),
+            )
+            .unwrap();
+            let error = v8::Exception::type_error(scope, message);
+            scope.throw_exception(error);
+            return;
+          }
+        };
 
         #[cfg(not(unix))]
-        let library =
-          unsafe { Library::load_with_flags(&path, flags).unwrap() };
+        let library = match unsafe { Library::load_with_flags(&path, flags) } {
+          Ok(lib) => lib,
+          Err(e) => {
+            let message = v8::String::new(
+              scope,
+              &e.to_string(),
+            )
+            .unwrap();
+            let error = v8::Exception::type_error(scope, message);
+            scope.throw_exception(error);
+            return;
+          }
+        };
 
         let init = unsafe {
           library.get::<unsafe extern "C" fn(
@@ -167,9 +190,13 @@ fn main() {
           };
           rv.set(exports.into());
         } else {
-          eprintln!(
-            "Failed to init module! napi_register_module_v1 symbol not found"
-          );
+          let message = v8::String::new(
+            scope,
+            "Failed to load module! napi_register_module_v1 symbol not found.",
+          )
+          .unwrap();
+          let error = v8::Exception::type_error(scope, message);
+          scope.throw_exception(error);
         }
 
         std::mem::forget(library);
@@ -188,5 +215,11 @@ fn main() {
   let filename = std::env::args().nth(1).unwrap_or(String::from("test.js"));
   let source_code = std::fs::read_to_string(&filename).unwrap();
 
-  runtime.execute_script(&filename, &source_code).unwrap();
+  match runtime.execute_script(&filename, &source_code) {
+    Ok(_) => {}
+    Err(e) => {
+      eprintln!("{}", e);
+      std::process::exit(1);
+    }
+  }
 }
