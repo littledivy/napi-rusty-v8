@@ -18,7 +18,9 @@ pub unsafe extern "C" fn napi_get_buffer_info(
     buf.get(env.scope, buffer_name.into()).unwrap(),
   )
   .unwrap();
-  *data = get_array_buffer_ptr(abuf);
+  if !data.is_null() {
+    *data = get_array_buffer_ptr(abuf);
+  }
   *length = abuf.byte_length();
   napi_ok
 }
