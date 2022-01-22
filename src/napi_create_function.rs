@@ -1,6 +1,6 @@
-use crate::function::create_function;
 use crate::env::Env;
 use crate::ffi::*;
+use crate::function::create_function;
 use deno_core::v8;
 
 #[no_mangle]

@@ -9,6 +9,7 @@ pub unsafe extern "C" fn napi_open_handle_scope(
   env: napi_env,
   result: *mut napi_value,
 ) -> napi_status {
+  println!("napi_open_handle_scope");
   let mut env = &mut *(env as *mut Env);
   // TODO: do this properly
   // uncommenting this causes panic while panicking

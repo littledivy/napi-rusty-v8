@@ -13,7 +13,8 @@ pub unsafe extern "C" fn napi_new_instance(
   let mut env = &mut *(env as *mut Env);
   let constructor: v8::Local<v8::Value> = std::mem::transmute(constructor);
   let constructor = v8::Local::<v8::Function>::try_from(constructor).unwrap();
-  let args: &[v8::Local<v8::Value>] = std::mem::transmute(std::slice::from_raw_parts(argv, argc));
+  let args: &[v8::Local<v8::Value>] =
+    std::mem::transmute(std::slice::from_raw_parts(argv, argc));
   let inst = constructor.new_instance(env.scope, args).unwrap();
   let value: v8::Local<v8::Value> = inst.into();
   *result = std::mem::transmute(value);

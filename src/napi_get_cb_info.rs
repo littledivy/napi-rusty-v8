@@ -1,6 +1,6 @@
-use crate::function::CallbackInfo;
 use crate::env::Env;
 use crate::ffi::*;
+use crate::function::CallbackInfo;
 use deno_core::v8;
 
 #[no_mangle]

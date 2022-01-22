@@ -13,7 +13,9 @@ pub unsafe extern "C" fn napi_create_external_arraybuffer(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
   let slice = std::slice::from_raw_parts(data as *mut u8, byte_length);
-  let store = v8::ArrayBuffer::new_backing_store_from_boxed_slice(slice.to_vec().into_boxed_slice());
+  let store = v8::ArrayBuffer::new_backing_store_from_boxed_slice(
+    slice.to_vec().into_boxed_slice(),
+  );
   // TODO
   napi_ok
 }

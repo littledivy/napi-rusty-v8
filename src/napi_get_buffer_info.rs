@@ -14,7 +14,10 @@ pub unsafe extern "C" fn napi_get_buffer_info(
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
   let buf = v8::Local::<v8::Uint8Array>::try_from(value).unwrap();
   let buffer_name = v8::String::new(env.scope, "buffer").unwrap();
-  let abuf = v8::Local::<v8::ArrayBuffer>::try_from(buf.get(env.scope, buffer_name.into()).unwrap()).unwrap();
+  let abuf = v8::Local::<v8::ArrayBuffer>::try_from(
+    buf.get(env.scope, buffer_name.into()).unwrap(),
+  )
+  .unwrap();
   *data = get_array_buffer_ptr(abuf);
   *length = abuf.byte_length();
   napi_ok

@@ -10,9 +10,9 @@ use libloading::os::unix::*;
 #[cfg(windows)]
 use libloading::os::windows::*;
 
-pub mod function;
 pub mod env;
 pub mod ffi;
+pub mod function;
 pub mod napi_add_env_cleanup_hook;
 pub mod napi_adjust_external_memory;
 pub mod napi_call_function;
@@ -143,7 +143,6 @@ fn main() {
         #[cfg(not(unix))]
         let flags = 0x00000008;
 
-        // Initializer callback.
         #[cfg(unix)]
         let library = match unsafe { Library::open(Some(&path), flags) } {
           Ok(lib) => lib,
@@ -166,30 +165,38 @@ fn main() {
           }
         };
 
-        let init = unsafe {
-          library.get::<unsafe extern "C" fn(
-            env: napi_env,
-            exports: napi_value,
-          ) -> napi_value>(b"napi_register_module_v1")
-        };
+        let env = &mut env as *mut Env as napi_env;
+        napi_module_register::MODULE.with(|cell| {
+          let slot = *cell.borrow();
+          match slot {
+            Some(nm) => {
+              let nm = unsafe { &*nm };
+              assert_eq!(nm.nm_version, 1);
+              let exports = unsafe {
+                (nm.nm_register_func)(env, std::mem::transmute(exports))
+              };
 
-        if let Ok(init) = init {
-          unsafe {
-            init(
-              &mut env as *mut _ as *mut c_void,
-              std::mem::transmute(exports),
-            )
-          };
-          rv.set(exports.into());
-        } else {
-          let message = v8::String::new(
-            scope,
-            "Failed to load module! napi_register_module_v1 symbol not found.",
-          )
-          .unwrap();
-          let error = v8::Exception::type_error(scope, message);
-          scope.throw_exception(error);
-        }
+              println!("{:?}", nm);
+              let exports: v8::Local<v8::Value> =
+                unsafe { std::mem::transmute(exports) };
+              rv.set(exports);
+            }
+            None => {
+              // Initializer callback.
+              let init = unsafe {
+                library
+                  .get::<unsafe extern "C" fn(
+                    env: napi_env,
+                    exports: napi_value,
+                  ) -> napi_value>(b"napi_register_module_v1")
+                  .expect("napi_register_module_v1 not found")
+              };
+
+              unsafe { init(env, std::mem::transmute(exports)) };
+              rv.set(exports.into());
+            }
+          }
+        });
 
         std::mem::forget(library);
       },
