@@ -108,6 +108,13 @@ pub mod napi_unref_threadsafe_function;
 pub mod napi_unwrap;
 pub mod napi_wrap;
 pub mod util;
+pub mod napi_coerce_to_bool;
+pub mod napi_coerce_to_number;
+pub mod napi_instanceof;
+pub mod napi_is_typedarray;
+pub mod napi_is_dataview;
+pub mod napi_detach_arraybuffer;
+pub mod napi_is_detached_arraybuffer;
 
 use deno_core::JsRuntime;
 
