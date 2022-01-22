@@ -9,6 +9,10 @@ pub type napi_value = *mut c_void;
 pub type napi_callback_info = *mut c_void;
 pub type napi_deferred = *mut c_void;
 pub type napi_ref = *mut c_void;
+pub type napi_threadsafe_function = *mut c_void;
+pub type napi_handle_scope = *mut c_void;
+pub type napi_escapable_handle_scope = *mut c_void;
+pub type napi_async_cleanup_hook_handle = *mut c_void;
 
 pub const napi_ok: napi_status = 0;
 pub const napi_invalid_arg: napi_status = 1;
@@ -46,13 +50,46 @@ pub const napi_function: napi_valuetype = 7;
 pub const napi_external: napi_valuetype = 8;
 pub const napi_bigint: napi_valuetype = 9;
 
+pub type napi_threadsafe_function_release_mode = i32;
+
+pub const napi_tsfn_release: napi_threadsafe_function_release_mode = 0;
+pub const napi_tsfn_abortext: napi_threadsafe_function_release_mode = 1;
+
+pub type napi_threadsafe_function_call_mode = i32;
+
+pub const napi_tsfn_nonblocking: napi_threadsafe_function_call_mode = 0;
+pub const napi_tsfn_blocking: napi_threadsafe_function_call_mode = 1;
+
+pub struct napi_type_tag {
+  pub lower: u64,
+  pub upper: u64,
+}
+
 pub type napi_callback =
   unsafe extern "C" fn(env: napi_env, info: napi_callback_info) -> napi_value;
 
-pub type napi_finalize_callback = unsafe extern "C" fn(
+pub type napi_finalize = unsafe extern "C" fn(
   env: napi_env,
   data: *mut c_void,
   finalize_hint: *mut c_void,
+);
+
+pub type napi_async_execute_callback =
+  unsafe extern "C" fn(env: napi_env, data: *mut c_void);
+
+pub type napi_async_complete_callback =
+  unsafe extern "C" fn(env: napi_env, status: napi_status, data: *mut c_void);
+
+pub type napi_threadsafe_function_call_js = unsafe extern "C" fn(
+  env: napi_env,
+  js_callback: napi_value,
+  context: *mut c_void,
+  data: *mut c_void,
+);
+
+pub type napi_async_cleanup_hook = unsafe extern "C" fn(
+  env: napi_env,
+  data: *mut c_void,
 );
 
 // default = 0
@@ -69,4 +106,13 @@ pub struct napi_property_descriptor {
   pub value: napi_value,
   pub attributes: napi_property_attributes,
   pub data: *mut c_void,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct napi_extended_error_info {
+  error_message: *const c_char,
+  engine_reserved: *mut c_void,
+  engine_error_code: i32,
+  status_code: napi_status,
 }
