@@ -15,12 +15,10 @@ pub unsafe extern "C" fn napi_define_class(
   result: *mut napi_value,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-
   let name = std::ffi::CStr::from_ptr(utf8name).to_str().unwrap();
   let tpl: v8::Local<v8::FunctionTemplate> = std::mem::transmute(
     create_function_template(env, Some(name), constructor, callback_data),
   );
-
   let napi_properties = std::slice::from_raw_parts(properties, property_count);
   for p in napi_properties {
     let name_str = CStr::from_ptr(p.utf8name).to_str().unwrap();
@@ -90,6 +88,5 @@ pub unsafe extern "C" fn napi_define_class(
 
   let value: v8::Local<v8::Value> = tpl.get_function(env.scope).unwrap().into();
   *result = std::mem::transmute(value);
-
   napi_ok
 }

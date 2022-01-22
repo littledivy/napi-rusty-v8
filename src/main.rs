@@ -43,6 +43,7 @@ pub mod napi_create_promise;
 pub mod napi_create_range_error;
 pub mod napi_create_reference;
 pub mod napi_create_string_utf8;
+pub mod napi_create_symbol;
 pub mod napi_create_threadsafe_function;
 pub mod napi_create_type_error;
 pub mod napi_create_uint32;

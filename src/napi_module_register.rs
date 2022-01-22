@@ -15,8 +15,8 @@ pub struct NapiModule {
   pub nm_version: i32,
   pub nm_flags: u32,
   nm_filename: *const c_char,
-  nm_modname: *const c_char,
   pub nm_register_func: napi_addon_register_func,
+  nm_modname: *const c_char,
   nm_priv: *mut c_void,
   reserved: [*mut c_void; 4],
 }

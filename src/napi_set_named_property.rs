@@ -11,8 +11,9 @@ pub unsafe extern "C" fn napi_set_named_property(
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
 
-  let object: v8::Local<v8::Object> = std::mem::transmute(object);
   let name = CStr::from_ptr(name).to_str().unwrap();
+
+  let object: v8::Local<v8::Object> = std::mem::transmute(object);
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
 
   let name = v8::String::new(env.scope, name).unwrap();
