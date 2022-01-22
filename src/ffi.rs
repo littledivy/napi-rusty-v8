@@ -73,3 +73,12 @@ pub struct napi_property_descriptor {
   pub attributes: napi_property_attributes,
   pub data: *mut c_void,
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct napi_extended_error_info {
+  error_message: *const c_char,
+  engine_reserved: *mut c_void,
+  engine_error_code: i32,
+  status_code: napi_status,
+}
