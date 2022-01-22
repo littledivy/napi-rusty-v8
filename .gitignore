@@ -3,3 +3,4 @@ target/
 example_module/target/
 node_modules/
 .vscode/
+exports.def
