@@ -117,6 +117,7 @@ pub mod napi_detach_arraybuffer;
 pub mod napi_is_detached_arraybuffer;
 pub mod napi_get_typedarray_info;
 pub mod napi_get_dataview_info;
+pub mod napi_get_prototype;
 
 use deno_core::JsRuntime;
 
