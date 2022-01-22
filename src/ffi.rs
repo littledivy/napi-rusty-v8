@@ -49,6 +49,16 @@ pub const napi_function: napi_valuetype = 7;
 pub const napi_external: napi_valuetype = 8;
 pub const napi_bigint: napi_valuetype = 9;
 
+pub type napi_threadsafe_function_release_mode = i32;
+
+pub const napi_tsfn_release: napi_threadsafe_function_release_mode = 0;
+pub const napi_tsfn_abortext: napi_threadsafe_function_release_mode = 1;
+
+pub type napi_threadsafe_function_call_mode = i32;
+
+pub const napi_tsfn_nonblocking: napi_threadsafe_function_call_mode = 0;
+pub const napi_tsfn_blocking: napi_threadsafe_function_call_mode = 1;
+
 pub type napi_callback =
   unsafe extern "C" fn(env: napi_env, info: napi_callback_info) -> napi_value;
 
