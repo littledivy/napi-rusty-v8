@@ -2,8 +2,10 @@ function print(txt) {
   Deno.core.print(txt + "\n");
 }
 
+const dprint = dlopen("./testdata/node_modules/dprint-node/dprint-node.linux-x64-gnu.node");
+
 print(
-  exports.format(
+  dprint.format(
     "hello.js",
     "function x(){let a=1;return a;}",
     {
