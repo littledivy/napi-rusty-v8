@@ -18,6 +18,8 @@ pub unsafe extern "C" fn napi_typeof(
     *result = napi_undefined;
   } else if value.is_null() {
     *result = napi_null;
+  } else if value.is_external() {
+    *result = napi_external;
   } else if value.is_boolean() {
     *result = napi_boolean;
   } else if value.is_number() {
@@ -28,12 +30,10 @@ pub unsafe extern "C" fn napi_typeof(
     *result = napi_symbol;
   } else if value.is_function() {
     *result = napi_function;
-  } else if value.is_object() {
-    *result = napi_object;
-  } else if value.is_external() {
-    *result = napi_external;
   } else if value.is_big_int() {
     *result = napi_bigint;
+  } else if value.is_object() {
+    *result = napi_object;
   } else {
     return napi_invalid_arg;
   }

@@ -15,39 +15,41 @@ pub unsafe extern "C" fn napi_create_function(
   let mut env = &mut *(env as *mut Env);
 
   let method_ptr = v8::External::new(env.scope, std::mem::transmute(cb));
+  let cb_info_ext = v8::External::new(env.scope, std::mem::transmute(cb_info));
+  let data_array = v8::Array::new_with_elements(env.scope, &[method_ptr.into(), cb_info_ext.into()]);
 
   let function = v8::Function::builder(
     |handle_scope: &mut v8::HandleScope,
      args: v8::FunctionCallbackArguments,
      mut rv: v8::ReturnValue| {
-      let data = args.data().unwrap();
-      let method_ptr = v8::Local::<v8::External>::try_from(data).unwrap();
-      let method: napi_callback = std::mem::transmute(method_ptr.value());
-
       let context = v8::Context::new(handle_scope);
       let scope = &mut v8::ContextScope::new(handle_scope, context);
+
+      let data = args.data().unwrap();
+      let data_array = v8::Local::<v8::Array>::try_from(data).unwrap();
+      let method_ptr = v8::Local::<v8::External>::try_from(data_array.get_index(scope, 0).unwrap()).unwrap();
+      let cb: napi_callback = std::mem::transmute(method_ptr.value());
+      let cb_info_ptr = v8::Local::<v8::External>::try_from(data_array.get_index(scope, 1).unwrap()).unwrap();
+      let cb_info: napi_callback_info = std::mem::transmute(cb_info_ptr.value());
 
       let mut env = Env { scope };
       let env_ptr = &mut env as *mut _ as *mut c_void;
 
       let mut info = CallbackInfo {
         env: env_ptr,
-        cb: method,
-        // why does it not work..?
-        // cb_info,
-        // but this works
-        cb_info: ptr::null_mut(),
+        cb,
+        cb_info,
         args: &args as *const _ as *const c_void,
       };
 
       let info_ptr = &mut info as *mut _ as *mut c_void;
 
-      let value = unsafe { method(env_ptr, info_ptr) };
+      let value = unsafe { cb(env_ptr, info_ptr) };
       let value = std::mem::transmute(value);
       rv.set(value);
     },
   )
-  .data(method_ptr.into())
+  .data(data_array.into())
   .build(env.scope)
   .unwrap();
 
