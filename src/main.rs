@@ -10,7 +10,7 @@ use libloading::os::unix::*;
 #[cfg(windows)]
 use libloading::os::windows::*;
 
-pub mod callback_info;
+pub mod function;
 pub mod env;
 pub mod ffi;
 pub mod napi_add_env_cleanup_hook;

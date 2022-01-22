@@ -1,4 +1,4 @@
-use crate::callback_info::CallbackInfo;
+use crate::function::CallbackInfo;
 use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
