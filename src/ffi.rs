@@ -123,8 +123,17 @@ pub type napi_threadsafe_function_call_js = unsafe extern "C" fn(
 pub type napi_async_cleanup_hook =
   unsafe extern "C" fn(env: napi_env, data: *mut c_void);
 
-// default = 0
 pub type napi_property_attributes = i32;
+
+pub const napi_default: napi_property_attributes = 0;
+pub const napi_writable: napi_property_attributes = 1 << 0;
+pub const napi_enumerable: napi_property_attributes = 1 << 1;
+pub const napi_configurable: napi_property_attributes = 1 << 2;
+pub const napi_static: napi_property_attributes = 1 << 10;
+pub const napi_default_method: napi_property_attributes =
+  napi_writable | napi_configurable;
+pub const napi_default_jsproperty: napi_property_attributes =
+  napi_enumerable | napi_configurable | napi_writable;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
