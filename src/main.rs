@@ -4,6 +4,8 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
+use std::mem::ManuallyDrop;
+
 #[cfg(unix)]
 use libloading::os::unix::*;
 
@@ -146,8 +148,10 @@ fn main() {
         let path = args.get(0).to_string(scope).unwrap();
         let path = path.to_rust_string_lossy(scope);
 
+        // println!("scope: {:?}", scope);
+
         let mut exports = v8::Object::new(scope);
-        let mut env = Env { scope };
+        let mut env = ManuallyDrop::new(Env::new(scope));
 
         #[cfg(unix)]
         let flags = RTLD_LAZY;
@@ -176,7 +180,7 @@ fn main() {
           }
         };
 
-        let env = &mut env as *mut Env as napi_env;
+        let env_ptr = &mut env as *mut _ as napi_env;
         napi_module_register::MODULE.with(|cell| {
           let slot = *cell.borrow();
           match slot {
@@ -184,7 +188,7 @@ fn main() {
               let nm = unsafe { &*nm };
               assert_eq!(nm.nm_version, 1);
               let exports = unsafe {
-                (nm.nm_register_func)(env, std::mem::transmute(exports))
+                (nm.nm_register_func)(env_ptr, std::mem::transmute(exports))
               };
 
               println!("{:?}", nm);
@@ -203,7 +207,7 @@ fn main() {
                   .expect("napi_register_module_v1 not found")
               };
 
-              unsafe { init(env, std::mem::transmute(exports)) };
+              unsafe { init(env_ptr, std::mem::transmute(exports)) };
               rv.set(exports.into());
             }
           }
