@@ -4,19 +4,19 @@ use crate::ffi::*;
 #[repr(C)]
 #[derive(Debug)]
 /// Env that is shared between all contexts in same native module.
-pub struct EnvShared<'a> {
+pub struct EnvShared {
   pub status: napi_status,
   pub error_message: Option<String>,
   pub instance_data: *mut c_void,
   pub data_finalize: Option<napi_finalize>,
   pub data_finalize_hint: *mut c_void,
-  pub napi_wrap: v8::Local<'a, v8::Value>,
+  pub napi_wrap: v8::Global<v8::Private>,
   pub finalize: Option<napi_finalize>,
   pub finalize_hint: *mut c_void,
 }
 
-impl<'a> EnvShared<'a> {
-  pub fn new(napi_wrap: v8::Local<'a, v8::Value>) -> Self {
+impl EnvShared {
+  pub fn new(napi_wrap: v8::Global<v8::Private>) -> Self {
     Self {
       status: napi_ok,
       error_message: None,
@@ -34,7 +34,7 @@ impl<'a> EnvShared<'a> {
 #[derive(Debug)]
 pub struct Env<'a, 'b, 'c> {
   pub scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>,
-  pub shared: *mut EnvShared<'b>,
+  pub shared: *mut EnvShared,
 }
 
 impl<'a, 'b, 'c> Env<'a, 'b, 'c> {
