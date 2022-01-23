@@ -126,6 +126,7 @@ pub mod napi_reference_ref;
 pub mod napi_reference_unref;
 pub mod napi_reject_deferred;
 pub mod napi_release_threadsafe_function;
+pub mod napi_remove_wrap;
 pub mod napi_resolve_deferred;
 pub mod napi_run_script;
 pub mod napi_set_element;
