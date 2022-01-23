@@ -60,6 +60,7 @@ pub mod napi_create_uint32;
 pub mod napi_define_class;
 pub mod napi_define_properties;
 pub mod napi_delete_async_work;
+pub mod napi_delete_property;
 pub mod napi_delete_reference;
 pub mod napi_detach_arraybuffer;
 pub mod napi_escape_handle;
