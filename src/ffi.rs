@@ -142,8 +142,17 @@ pub struct napi_property_descriptor {
 #[repr(C)]
 #[derive(Debug)]
 pub struct napi_extended_error_info {
-  error_message: *const c_char,
-  engine_reserved: *mut c_void,
-  engine_error_code: i32,
-  status_code: napi_status,
+  pub error_message: *const c_char,
+  pub engine_reserved: *mut c_void,
+  pub engine_error_code: i32,
+  pub status_code: napi_status,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct napi_node_version {
+  pub major: u32,
+  pub minor: u32,
+  pub patch: u32,
+  pub release: *const c_char,
 }
