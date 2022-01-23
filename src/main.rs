@@ -61,6 +61,8 @@ pub mod napi_delete_async_work;
 pub mod napi_delete_reference;
 pub mod napi_detach_arraybuffer;
 pub mod napi_escape_handle;
+pub mod napi_fatal_error;
+pub mod napi_fatal_exception;
 pub mod napi_get_all_property_names;
 pub mod napi_get_and_clear_last_exception;
 pub mod napi_get_array_length;
