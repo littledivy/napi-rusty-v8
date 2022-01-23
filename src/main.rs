@@ -4,8 +4,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
-use std::mem::ManuallyDrop;
-
+use env::EnvShared;
 #[cfg(unix)]
 use libloading::os::unix::*;
 
@@ -138,20 +137,38 @@ fn main() {
     let inner_scope = &mut v8::ContextScope::new(scope, context);
     let global = context.global(inner_scope);
 
+    let napi_wrap_name = v8::String::new(inner_scope, "napi_wrap").unwrap();
+    let napi_wrap = v8::Symbol::new(inner_scope, Some(napi_wrap_name));
+    let napi_wrap: v8::Local<v8::Value> = napi_wrap.into();
+
     let dlopen_func = v8::Function::builder(
       |handle_scope: &mut v8::HandleScope,
        args: v8::FunctionCallbackArguments,
        mut rv: v8::ReturnValue| {
+        let napi_wrap = args.data().unwrap();
+
         let context = v8::Context::new(handle_scope);
         let scope = &mut v8::ContextScope::new(handle_scope, context);
 
         let path = args.get(0).to_string(scope).unwrap();
         let path = path.to_rust_string_lossy(scope);
 
-        // println!("scope: {:?}", scope);
-
         let mut exports = v8::Object::new(scope);
-        let mut env = ManuallyDrop::new(Env::new(scope));
+
+        println!("initial napi_wrap: {:?} {}", napi_wrap, napi_wrap.is_symbol());
+
+        // We need complete control over the env object's lifetime
+        // so we'll use explicit allocation for it, so that it doesn't
+        // die before the module itself. Using struct & their pointers
+        // resulted in a use-after-free situation which turned out to be
+        // unfixable, so here we are.
+        let env_shared_ptr = unsafe { std::alloc::alloc(std::alloc::Layout::new::<EnvShared>()) as *mut EnvShared };
+        unsafe { env_shared_ptr.write(EnvShared::new(napi_wrap)); }
+
+        let env_ptr = unsafe { std::alloc::alloc(std::alloc::Layout::new::<Env>()) as napi_env };
+        let mut env = Env::new(scope);
+        env.shared = env_shared_ptr;
+        unsafe { (env_ptr as *mut Env).write(env); }
 
         #[cfg(unix)]
         let flags = RTLD_LAZY;
@@ -180,7 +197,6 @@ fn main() {
           }
         };
 
-        let env_ptr = &mut env as *mut _ as napi_env;
         napi_module_register::MODULE.with(|cell| {
           let slot = *cell.borrow();
           match slot {
@@ -216,6 +232,7 @@ fn main() {
         std::mem::forget(library);
       },
     )
+    .data(napi_wrap)
     .build(inner_scope)
     .unwrap();
 
@@ -224,6 +241,8 @@ fn main() {
     global
       .set(inner_scope, dlopen_name.into(), dlopen_func.into())
       .unwrap();
+
+    println!("before scope end napi_wrap: {:?} {}", napi_wrap, napi_wrap.is_symbol());
   }
 
   let filename = std::env::args()
