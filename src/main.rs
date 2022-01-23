@@ -35,6 +35,7 @@ pub mod napi_create_bigint_uint64;
 pub mod napi_create_bigint_words;
 pub mod napi_create_buffer_copy;
 pub mod napi_create_buffer;
+pub mod napi_create_dataview;
 pub mod napi_create_date;
 pub mod napi_create_double;
 pub mod napi_create_error;
