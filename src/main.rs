@@ -119,6 +119,8 @@ pub mod napi_set_property;
 pub mod napi_strict_equals;
 pub mod napi_throw;
 pub mod napi_throw_error;
+pub mod napi_throw_range_error;
+pub mod napi_throw_type_error;
 pub mod napi_typeof;
 pub mod napi_unref_threadsafe_function;
 pub mod napi_unwrap;

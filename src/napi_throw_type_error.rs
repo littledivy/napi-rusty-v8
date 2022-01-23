@@ -3,7 +3,7 @@ use crate::ffi::*;
 use deno_core::v8;
 
 #[no_mangle]
-pub unsafe extern "C" fn napi_throw_error(
+pub unsafe extern "C" fn napi_throw_type_error(
   env: napi_env,
   code: *const c_char,
   msg: *const c_char,
@@ -16,7 +16,7 @@ pub unsafe extern "C" fn napi_throw_error(
   // let code = v8::String::new(env.scope, code).unwrap();
   let msg = v8::String::new(env.scope, msg).unwrap();
 
-  let error = v8::Exception::error(env.scope, msg);
+  let error = v8::Exception::type_error(env.scope, msg);
   env.scope.throw_exception(error);
 
   napi_ok
