@@ -125,6 +125,7 @@ pub mod napi_typeof;
 pub mod napi_unref_threadsafe_function;
 pub mod napi_unwrap;
 pub mod napi_wrap;
+pub mod node_api_create_syntax_error;
 pub mod node_api_get_module_file_name;
 pub mod node_api_throw_syntax_error;
 pub mod util;
