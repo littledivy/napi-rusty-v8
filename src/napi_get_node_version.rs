@@ -1,4 +1,3 @@
-use crate::env::Env;
 use crate::ffi::*;
 
 thread_local! {
@@ -22,10 +21,9 @@ thread_local! {
 
 #[no_mangle]
 pub unsafe extern "C" fn napi_get_node_version(
-  env: napi_env,
+  _: napi_env,
   result: *mut *const napi_node_version,
 ) -> napi_status {
-  let mut _env = &mut *(env as *mut Env);
   NODE_VERSION.with(|version| {
     *result = version as *const napi_node_version;
   });
