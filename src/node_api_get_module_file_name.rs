@@ -1,13 +1,13 @@
-use crate::env::Env;
 use crate::ffi::*;
+use crate::env::Env;
 
 #[no_mangle]
-pub unsafe extern "C" fn napi_get_instance_data(
+pub unsafe extern "C" fn node_api_get_module_file_name(
   env: napi_env,
-  result: *mut *mut c_void,
+  result: *mut *const c_char,
 ) -> napi_status {
   let env = &mut *(env as *mut Env);
   let shared = env.shared();
-  *result = shared.instance_data;
+  *result = shared.filename;
   napi_ok
 }

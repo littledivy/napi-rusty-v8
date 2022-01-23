@@ -8,7 +8,7 @@ pub unsafe extern "C" fn napi_set_instance_data(
   finalize_cb: napi_finalize,
   finalize_hint: *mut c_void,
 ) -> napi_status {
-  let mut env = &mut *(env as *mut Env);
+  let env = &mut *(env as *mut Env);
   let shared = env.shared_mut();
   shared.instance_data = data;
   shared.data_finalize = if !(finalize_cb as *const c_void).is_null() {
@@ -17,5 +17,5 @@ pub unsafe extern "C" fn napi_set_instance_data(
     None
   };
   shared.data_finalize_hint = finalize_hint;
-  env.ok()
+  napi_ok
 }

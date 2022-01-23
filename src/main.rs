@@ -4,6 +4,8 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
+use std::ffi::CString;
+
 use env::EnvShared;
 #[cfg(unix)]
 use libloading::os::unix::*;
@@ -118,6 +120,7 @@ pub mod napi_typeof;
 pub mod napi_unref_threadsafe_function;
 pub mod napi_unwrap;
 pub mod napi_wrap;
+pub mod node_api_get_module_file_name;
 pub mod util;
 
 use deno_core::JsRuntime;
@@ -163,8 +166,12 @@ fn main() {
           std::alloc::alloc(std::alloc::Layout::new::<EnvShared>())
             as *mut EnvShared
         };
+        let mut env_shared = EnvShared::new(napi_wrap);
+        let cstr = CString::new(path.clone()).unwrap();
+        env_shared.filename = cstr.as_ptr();
+        std::mem::forget(cstr);
         unsafe {
-          env_shared_ptr.write(EnvShared::new(napi_wrap));
+          env_shared_ptr.write(env_shared);
         }
 
         let env_ptr = unsafe {
