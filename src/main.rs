@@ -4,6 +4,9 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
+use std::ffi::CString;
+
+use env::EnvShared;
 #[cfg(unix)]
 use libloading::os::unix::*;
 
@@ -20,6 +23,8 @@ pub mod napi_call_threadsafe_function;
 pub mod napi_cancel_async_work;
 pub mod napi_close_escapable_handle_scope;
 pub mod napi_close_handle_scope;
+pub mod napi_coerce_to_bool;
+pub mod napi_coerce_to_number;
 pub mod napi_coerce_to_object;
 pub mod napi_coerce_to_string;
 pub mod napi_create_array_with_length;
@@ -51,6 +56,7 @@ pub mod napi_define_class;
 pub mod napi_define_properties;
 pub mod napi_delete_async_work;
 pub mod napi_delete_reference;
+pub mod napi_detach_arraybuffer;
 pub mod napi_escape_handle;
 pub mod napi_get_all_property_names;
 pub mod napi_get_and_clear_last_exception;
@@ -59,6 +65,7 @@ pub mod napi_get_arraybuffer_info;
 pub mod napi_get_boolean;
 pub mod napi_get_buffer_info;
 pub mod napi_get_cb_info;
+pub mod napi_get_dataview_info;
 pub mod napi_get_date_value;
 pub mod napi_get_element;
 pub mod napi_get_global;
@@ -68,7 +75,9 @@ pub mod napi_get_new_target;
 pub mod napi_get_null;
 pub mod napi_get_property;
 pub mod napi_get_property_names;
+pub mod napi_get_prototype;
 pub mod napi_get_reference_value;
+pub mod napi_get_typedarray_info;
 pub mod napi_get_undefined;
 pub mod napi_get_value_bool;
 pub mod napi_get_value_double;
@@ -77,13 +86,17 @@ pub mod napi_get_value_int32;
 pub mod napi_get_value_string_utf8;
 pub mod napi_get_value_uint32;
 pub mod napi_get_version;
+pub mod napi_instanceof;
 pub mod napi_is_array;
 pub mod napi_is_arraybuffer;
 pub mod napi_is_buffer;
+pub mod napi_is_dataview;
 pub mod napi_is_date;
+pub mod napi_is_detached_arraybuffer;
 pub mod napi_is_error;
 pub mod napi_is_exception_pending;
 pub mod napi_is_promise;
+pub mod napi_is_typedarray;
 pub mod napi_module_register;
 pub mod napi_new_instance;
 pub mod napi_open_escapable_handle_scope;
@@ -107,17 +120,8 @@ pub mod napi_typeof;
 pub mod napi_unref_threadsafe_function;
 pub mod napi_unwrap;
 pub mod napi_wrap;
+pub mod node_api_get_module_file_name;
 pub mod util;
-pub mod napi_coerce_to_bool;
-pub mod napi_coerce_to_number;
-pub mod napi_instanceof;
-pub mod napi_is_typedarray;
-pub mod napi_is_dataview;
-pub mod napi_detach_arraybuffer;
-pub mod napi_is_detached_arraybuffer;
-pub mod napi_get_typedarray_info;
-pub mod napi_get_dataview_info;
-pub mod napi_get_prototype;
 
 use deno_core::JsRuntime;
 
@@ -143,11 +147,41 @@ fn main() {
         let context = v8::Context::new(handle_scope);
         let scope = &mut v8::ContextScope::new(handle_scope, context);
 
+        let napi_wrap_name = v8::String::new(scope, "napi_wrap").unwrap();
+        let napi_wrap = v8::Private::new(scope, Some(napi_wrap_name));
+        let napi_wrap = v8::Local::new(scope, napi_wrap);
+        let napi_wrap = v8::Global::new(scope, napi_wrap);
+
         let path = args.get(0).to_string(scope).unwrap();
         let path = path.to_rust_string_lossy(scope);
 
         let mut exports = v8::Object::new(scope);
-        let mut env = Env { scope };
+
+        // We need complete control over the env object's lifetime
+        // so we'll use explicit allocation for it, so that it doesn't
+        // die before the module itself. Using struct & their pointers
+        // resulted in a use-after-free situation which turned out to be
+        // unfixable, so here we are.
+        let env_shared_ptr = unsafe {
+          std::alloc::alloc(std::alloc::Layout::new::<EnvShared>())
+            as *mut EnvShared
+        };
+        let mut env_shared = EnvShared::new(napi_wrap);
+        let cstr = CString::new(path.clone()).unwrap();
+        env_shared.filename = cstr.as_ptr();
+        std::mem::forget(cstr);
+        unsafe {
+          env_shared_ptr.write(env_shared);
+        }
+
+        let env_ptr = unsafe {
+          std::alloc::alloc(std::alloc::Layout::new::<Env>()) as napi_env
+        };
+        let mut env = Env::new(scope);
+        env.shared = env_shared_ptr;
+        unsafe {
+          (env_ptr as *mut Env).write(env);
+        }
 
         #[cfg(unix)]
         let flags = RTLD_LAZY;
@@ -176,7 +210,6 @@ fn main() {
           }
         };
 
-        let env = &mut env as *mut Env as napi_env;
         napi_module_register::MODULE.with(|cell| {
           let slot = *cell.borrow();
           match slot {
@@ -184,7 +217,7 @@ fn main() {
               let nm = unsafe { &*nm };
               assert_eq!(nm.nm_version, 1);
               let exports = unsafe {
-                (nm.nm_register_func)(env, std::mem::transmute(exports))
+                (nm.nm_register_func)(env_ptr, std::mem::transmute(exports))
               };
 
               println!("{:?}", nm);
@@ -203,7 +236,7 @@ fn main() {
                   .expect("napi_register_module_v1 not found")
               };
 
-              unsafe { init(env, std::mem::transmute(exports)) };
+              unsafe { init(env_ptr, std::mem::transmute(exports)) };
               rv.set(exports.into());
             }
           }

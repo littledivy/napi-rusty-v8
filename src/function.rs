@@ -18,9 +18,12 @@ pub unsafe fn create_function<'a>(
 ) -> v8::Local<'a, v8::Function> {
   let method_ptr = v8::External::new(env.scope, std::mem::transmute(cb));
   let cb_info_ext = v8::External::new(env.scope, std::mem::transmute(cb_info));
+  let env_ptr = env as *mut _ as *mut c_void;
+  let env_ext = v8::External::new(env.scope, env_ptr);
+
   let data_array = v8::Array::new_with_elements(
     env.scope,
-    &[method_ptr.into(), cb_info_ext.into()],
+    &[method_ptr.into(), cb_info_ext.into(), env_ext.into()],
   );
 
   let function = v8::Function::builder(
@@ -32,12 +35,14 @@ pub unsafe fn create_function<'a>(
 
       let data = args.data().unwrap();
       let data_array = v8::Local::<v8::Array>::try_from(data).unwrap();
+
       let method_ptr = v8::Local::<v8::External>::try_from(
         data_array.get_index(scope, 0).unwrap(),
       )
       .unwrap();
       let cb: napi_callback =
         unsafe { std::mem::transmute(method_ptr.value()) };
+
       let cb_info_ptr = v8::Local::<v8::External>::try_from(
         data_array.get_index(scope, 1).unwrap(),
       )
@@ -45,7 +50,12 @@ pub unsafe fn create_function<'a>(
       let cb_info: napi_callback_info =
         unsafe { std::mem::transmute(cb_info_ptr.value()) };
 
-      let mut env = Env { scope };
+      let env_ptr = v8::Local::<v8::External>::try_from(
+        data_array.get_index(scope, 2).unwrap(),
+      ).unwrap();
+      let env_ptr = env_ptr.value() as *mut Env;
+
+      let mut env = (&mut *(env_ptr)).with_new_scope(scope);
       let env_ptr = &mut env as *mut _ as *mut c_void;
 
       let mut info = CallbackInfo {
@@ -82,9 +92,12 @@ pub unsafe fn create_function_template<'a>(
 ) -> v8::Local<'a, v8::FunctionTemplate> {
   let method_ptr = v8::External::new(env.scope, std::mem::transmute(cb));
   let cb_info_ext = v8::External::new(env.scope, std::mem::transmute(cb_info));
+  let env_ptr = env as *mut _ as *mut c_void;
+  let env_ext = v8::External::new(env.scope, env_ptr);
+
   let data_array = v8::Array::new_with_elements(
     env.scope,
-    &[method_ptr.into(), cb_info_ext.into()],
+    &[method_ptr.into(), cb_info_ext.into(), env_ext.into()],
   );
 
   let function = v8::FunctionTemplate::builder(
@@ -96,12 +109,14 @@ pub unsafe fn create_function_template<'a>(
 
       let data = args.data().unwrap();
       let data_array = v8::Local::<v8::Array>::try_from(data).unwrap();
+
       let method_ptr = v8::Local::<v8::External>::try_from(
         data_array.get_index(scope, 0).unwrap(),
       )
       .unwrap();
       let cb: napi_callback =
         unsafe { std::mem::transmute(method_ptr.value()) };
+
       let cb_info_ptr = v8::Local::<v8::External>::try_from(
         data_array.get_index(scope, 1).unwrap(),
       )
@@ -109,7 +124,12 @@ pub unsafe fn create_function_template<'a>(
       let cb_info: napi_callback_info =
         unsafe { std::mem::transmute(cb_info_ptr.value()) };
 
-      let mut env = Env { scope };
+      let env_ptr = v8::Local::<v8::External>::try_from(
+        data_array.get_index(scope, 2).unwrap(),
+      ).unwrap();
+      let env_ptr = env_ptr.value() as *mut Env;
+
+      let mut env = (&mut *(env_ptr)).with_new_scope(scope);
       let env_ptr = &mut env as *mut _ as *mut c_void;
 
       let mut info = CallbackInfo {
