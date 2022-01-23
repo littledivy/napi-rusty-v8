@@ -1,5 +1,5 @@
-use deno_core::v8;
 use crate::ffi::*;
+use deno_core::v8;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -39,20 +39,26 @@ pub struct Env<'a, 'b, 'c> {
 
 impl<'a, 'b, 'c> Env<'a, 'b, 'c> {
   pub fn new(scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>) -> Self {
-    Self { scope, shared: std::ptr::null_mut() }
+    Self {
+      scope,
+      shared: std::ptr::null_mut(),
+    }
   }
 
   pub fn with_new_scope(
     &self,
     scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>,
   ) -> Self {
-    Self { scope, shared: self.shared }
+    Self {
+      scope,
+      shared: self.shared,
+    }
   }
 
   pub fn shared(&self) -> &EnvShared {
     unsafe { &*self.shared }
   }
-  
+
   pub fn shared_mut(&self) -> &mut EnvShared {
     unsafe { &mut *self.shared }
   }
