@@ -3,7 +3,7 @@ use crate::ffi::*;
 use deno_core::v8;
 
 #[no_mangle]
-pub unsafe extern "C" fn napi_get_value_string_utf8(
+pub unsafe extern "C" fn napi_get_value_string_latin1(
   env: napi_env,
   value: napi_value,
   buf: *mut u8,
@@ -25,12 +25,11 @@ pub unsafe extern "C" fn napi_get_value_string_utf8(
     *result = string_len;
   } else if bufsize != 0 {
     let buffer = std::slice::from_raw_parts_mut(buf, bufsize - 1);
-    let copied = v8str.write_utf8(
+    let copied = v8str.write_one_byte(
       env.scope,
       buffer,
-      None,
-      v8::WriteOptions::NO_NULL_TERMINATION
-        | v8::WriteOptions::REPLACE_INVALID_UTF8,
+      0,
+      v8::WriteOptions::NO_NULL_TERMINATION,
     );
     buf.offset(copied as isize).write(0);
     if !result.is_null() {
