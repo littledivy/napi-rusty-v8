@@ -48,4 +48,32 @@ impl<'a, 'b, 'c> Env<'a, 'b, 'c> {
   ) -> Self {
     Self { scope, shared: self.shared }
   }
+
+  pub fn shared(&self) -> &EnvShared {
+    unsafe { &*self.shared }
+  }
+  
+  pub fn shared_mut(&self) -> &mut EnvShared {
+    unsafe { &mut *self.shared }
+  }
+
+  pub fn ok(&self) -> napi_status {
+    let shared = self.shared_mut();
+    shared.status = napi_ok;
+    shared.error_message = None;
+    shared.status
+  }
+
+  pub fn set_status(&mut self, status: napi_status) -> napi_status {
+    let shared = self.shared_mut();
+    shared.status = status;
+    shared.status
+  }
+
+  pub fn error(&mut self, message: &str) -> napi_status {
+    let shared = self.shared_mut();
+    shared.status = napi_generic_failure;
+    shared.error_message = Some(message.to_string());
+    shared.status
+  }
 }
