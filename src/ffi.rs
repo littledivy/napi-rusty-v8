@@ -60,6 +60,39 @@ pub type napi_threadsafe_function_call_mode = i32;
 pub const napi_tsfn_nonblocking: napi_threadsafe_function_call_mode = 0;
 pub const napi_tsfn_blocking: napi_threadsafe_function_call_mode = 1;
 
+pub type napi_key_collection_mode = i32;
+
+pub const napi_key_include_prototypes: napi_key_collection_mode = 0;
+pub const napi_key_own_only: napi_key_collection_mode = 1;
+
+pub type napi_key_filter = i32;
+
+pub const napi_key_all_properties: napi_key_filter = 0;
+pub const napi_key_writable: napi_key_filter = 1;
+pub const napi_key_enumerable: napi_key_filter = 1 << 1;
+pub const napi_key_configurable: napi_key_filter = 1 << 2;
+pub const napi_key_skip_strings: napi_key_filter = 1 << 3;
+pub const napi_key_skip_symbols: napi_key_filter = 1 << 4;
+
+pub type napi_key_conversion = i32;
+
+pub const napi_key_keep_numbers: napi_key_conversion = 0;
+pub const napi_key_numbers_to_strings: napi_key_conversion = 1;
+
+pub type napi_typedarray_type = i32;
+
+pub const napi_int8_array: napi_typedarray_type = 0;
+pub const napi_uint8_array: napi_typedarray_type = 1;
+pub const napi_uint8_clamped_array: napi_typedarray_type = 2;
+pub const napi_int16_array: napi_typedarray_type = 3;
+pub const napi_uint16_array: napi_typedarray_type = 4;
+pub const napi_int32_array: napi_typedarray_type = 5;
+pub const napi_uint32_array: napi_typedarray_type = 6;
+pub const napi_float32_array: napi_typedarray_type = 7;
+pub const napi_float64_array: napi_typedarray_type = 8;
+pub const napi_bigint64_array: napi_typedarray_type = 9;
+pub const napi_biguint64_array: napi_typedarray_type = 10;
+
 pub struct napi_type_tag {
   pub lower: u64,
   pub upper: u64,
@@ -87,10 +120,8 @@ pub type napi_threadsafe_function_call_js = unsafe extern "C" fn(
   data: *mut c_void,
 );
 
-pub type napi_async_cleanup_hook = unsafe extern "C" fn(
-  env: napi_env,
-  data: *mut c_void,
-);
+pub type napi_async_cleanup_hook =
+  unsafe extern "C" fn(env: napi_env, data: *mut c_void);
 
 // default = 0
 pub type napi_property_attributes = i32;
