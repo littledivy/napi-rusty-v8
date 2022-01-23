@@ -52,7 +52,8 @@ pub unsafe fn create_function<'a>(
 
       let env_ptr = v8::Local::<v8::External>::try_from(
         data_array.get_index(scope, 2).unwrap(),
-      ).unwrap();
+      )
+      .unwrap();
       let env_ptr = env_ptr.value() as *mut Env;
 
       let mut env = (&mut *(env_ptr)).with_new_scope(scope);
@@ -126,7 +127,8 @@ pub unsafe fn create_function_template<'a>(
 
       let env_ptr = v8::Local::<v8::External>::try_from(
         data_array.get_index(scope, 2).unwrap(),
-      ).unwrap();
+      )
+      .unwrap();
       let env_ptr = env_ptr.value() as *mut Env;
 
       let mut env = (&mut *(env_ptr)).with_new_scope(scope);
