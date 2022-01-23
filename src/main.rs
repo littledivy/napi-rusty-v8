@@ -102,6 +102,7 @@ pub mod napi_get_value_string_utf16;
 pub mod napi_get_value_uint32;
 pub mod napi_get_version;
 pub mod napi_has_element;
+pub mod napi_has_named_property;
 pub mod napi_has_property;
 pub mod napi_instanceof;
 pub mod napi_is_array;
