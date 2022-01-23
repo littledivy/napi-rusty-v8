@@ -75,6 +75,7 @@ pub mod napi_get_date_value;
 pub mod napi_get_element;
 pub mod napi_get_global;
 pub mod napi_get_instance_data;
+pub mod napi_get_last_error_info;
 pub mod napi_get_named_property;
 pub mod napi_get_new_target;
 pub mod napi_get_null;
