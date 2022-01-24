@@ -124,8 +124,17 @@ pub type napi_threadsafe_function_call_js = unsafe extern "C" fn(
 pub type napi_async_cleanup_hook =
   unsafe extern "C" fn(env: napi_env, data: *mut c_void);
 
-// default = 0
 pub type napi_property_attributes = i32;
+
+pub const napi_default: napi_property_attributes = 0;
+pub const napi_writable: napi_property_attributes = 1 << 0;
+pub const napi_enumerable: napi_property_attributes = 1 << 1;
+pub const napi_configurable: napi_property_attributes = 1 << 2;
+pub const napi_static: napi_property_attributes = 1 << 10;
+pub const napi_default_method: napi_property_attributes =
+  napi_writable | napi_configurable;
+pub const napi_default_jsproperty: napi_property_attributes =
+  napi_enumerable | napi_configurable | napi_writable;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -143,8 +152,17 @@ pub struct napi_property_descriptor {
 #[repr(C)]
 #[derive(Debug)]
 pub struct napi_extended_error_info {
-  error_message: *const c_char,
-  engine_reserved: *mut c_void,
-  engine_error_code: i32,
-  status_code: napi_status,
+  pub error_message: *const c_char,
+  pub engine_reserved: *mut c_void,
+  pub engine_error_code: i32,
+  pub status_code: napi_status,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct napi_node_version {
+  pub major: u32,
+  pub minor: u32,
+  pub patch: u32,
+  pub release: *const c_char,
 }
