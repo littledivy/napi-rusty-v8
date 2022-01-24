@@ -2,6 +2,13 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
+#[repr(C)]
+pub struct AsyncWork {
+  pub data: *mut c_void,
+  pub execute: napi_async_execute_callback,
+  pub complete: napi_async_complete_callback,
+}
+
 #[napi_sym::napi_sym]
 fn napi_create_async_work(
   env: napi_env,
@@ -20,6 +27,12 @@ fn napi_create_async_work(
   };
 
   let resource_name: v8::Local<v8::String> = transmute(async_resource_name);
-  //task::spawn
+  let mut work = AsyncWork {
+    data,
+    execute,
+    complete,
+  };
+  *result = &mut work as *mut AsyncWork as napi_async_work;
+
   Ok(())
 }
