@@ -14,8 +14,6 @@ pub unsafe extern "C" fn napi_has_named_property(
   let obj = value.to_object(env.scope).unwrap();
   let key = std::ffi::CStr::from_ptr(key).to_str().unwrap();
   let key = v8::String::new(env.scope, key).unwrap();
-  *result = obj
-    .has(env.scope, key.into())
-    .unwrap_or(false);
+  *result = obj.has(env.scope, key.into()).unwrap_or(false);
   napi_ok
 }

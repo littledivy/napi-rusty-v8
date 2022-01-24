@@ -11,7 +11,7 @@ pub unsafe extern "C" fn napi_get_value_bigint_words(
   out_words: *mut u64,
 ) -> napi_status {
   let mut env = &mut *(env as *mut Env);
-  
+
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
   let bigint = value.to_big_int(env.scope).unwrap();
 

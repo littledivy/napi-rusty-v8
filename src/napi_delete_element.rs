@@ -12,8 +12,6 @@ pub unsafe extern "C" fn napi_delete_element(
   let mut env = &mut *(env as *mut Env);
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
   let obj = value.to_object(env.scope).unwrap();
-  *result = obj
-    .delete_index(env.scope, index)
-    .unwrap_or(false);
+  *result = obj.delete_index(env.scope, index).unwrap_or(false);
   napi_ok
 }
