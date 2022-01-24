@@ -12,7 +12,6 @@ fn napi_close_handle_scope(
     return Err(());
   }
 
-  println!("napi_close_handle_scope");
   let scope = transmute::<_, &mut v8::HandleScope>(scope);
   drop(scope);
   env.open_handle_scopes += 1;
