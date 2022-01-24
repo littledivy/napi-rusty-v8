@@ -7,6 +7,7 @@
     "@swc/cli": "^0.1.55",
     "@swc/core": "^1.2.133",
     "dprint-node": "^1.0.5",
+    "fs-xattr": "^0.4.0",
     "skia-canvas": "^0.9.28",
     "usb": "^2.0.3"
   }

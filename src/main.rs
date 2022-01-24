@@ -244,7 +244,6 @@ fn main() {
                 (nm.nm_register_func)(env_ptr, std::mem::transmute(exports))
               };
 
-              println!("{:?}", nm);
               let exports: v8::Local<v8::Value> =
                 unsafe { std::mem::transmute(exports) };
               rv.set(exports);

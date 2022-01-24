@@ -32,7 +32,6 @@ fn napi_create_async_work(
     execute,
     complete,
   };
-  *result = &mut work as *mut AsyncWork as napi_async_work;
-
+  *result = transmute::<Box<AsyncWork>, _>(Box::new(work));
   Ok(())
 }

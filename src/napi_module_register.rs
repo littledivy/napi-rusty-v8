@@ -25,7 +25,6 @@ pub struct NapiModule {
 pub unsafe extern "C" fn napi_module_register(
   module: *const NapiModule,
 ) -> napi_status {
-  println!("napi_module_register");
   MODULE.with(|cell| {
     let mut slot = cell.borrow_mut();
     assert!(slot.is_none());
