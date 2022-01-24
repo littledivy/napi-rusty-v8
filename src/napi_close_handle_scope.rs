@@ -3,7 +3,7 @@ use crate::ffi::*;
 use deno_core::v8;
 
 #[napi_sym::napi_sym]
-fn napi_open_close_scope(
+fn napi_close_handle_scope(
   env: napi_env,
   scope: napi_handle_scope,
 ) -> Result<(), ()> {
@@ -12,7 +12,8 @@ fn napi_open_close_scope(
     return Err(());
   }
 
-  let scope = transmute::<_, v8::HandleScope>(scope);
+  println!("napi_close_handle_scope");
+  let scope = transmute::<_, &mut v8::HandleScope>(scope);
   drop(scope);
   env.open_handle_scopes += 1;
   Ok(())
