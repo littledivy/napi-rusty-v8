@@ -27,5 +27,8 @@ pub unsafe extern "C" fn napi_fatal_error(
       std::slice::from_raw_parts(message as *const u8, message_len as usize);
     std::str::from_utf8(slice).unwrap()
   };
-  panic!("Fatal exception triggered by napi_fatal_error!\nLocation: {:?}\n{}", location, message);
+  panic!(
+    "Fatal exception triggered by napi_fatal_error!\nLocation: {:?}\n{}",
+    location, message
+  );
 }

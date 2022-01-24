@@ -17,9 +17,12 @@ pub fn napi_sym(_attr: TokenStream, item: TokenStream) -> TokenStream {
   TokenStream::from(quote! {
       #[no_mangle]
       pub unsafe extern "C" fn #name(#inputs) -> napi_status {
-         let result: #ret_ty = #block;
+         let inner = || -> #ret_ty {
+           let result = #block;
+           result
+         };
          // TODO: convert error to napi_status
-         result.unwrap();
+         inner().unwrap();
          napi_ok
       }
   })

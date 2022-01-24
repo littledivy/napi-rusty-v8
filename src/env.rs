@@ -32,6 +32,7 @@ impl EnvShared {
 #[derive(Debug)]
 pub struct Env<'a, 'b, 'c> {
   pub scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>,
+  pub open_handle_scopes: usize,
   pub shared: *mut EnvShared,
 }
 
@@ -40,6 +41,7 @@ impl<'a, 'b, 'c> Env<'a, 'b, 'c> {
     Self {
       scope,
       shared: std::ptr::null_mut(),
+      open_handle_scopes: 0,
     }
   }
 
@@ -50,6 +52,7 @@ impl<'a, 'b, 'c> Env<'a, 'b, 'c> {
     Self {
       scope,
       shared: self.shared,
+      open_handle_scopes: self.open_handle_scopes,
     }
   }
 

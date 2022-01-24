@@ -1,10 +1,14 @@
+use crate::env::Env;
 use crate::ffi::*;
+use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_open_handle_scope(
+#[napi_sym::napi_sym]
+fn napi_open_handle_scope(
   env: napi_env,
-  result: *mut napi_value,
-) -> napi_status {
-  // TODO: do this properly
-  napi_ok
+  result: *mut napi_handle_scope,
+) -> Result<(), ()> {
+  let env = &mut *(env as *mut Env);
+  *result = transmute(v8::HandleScope::new(env.scope));
+  env.open_handle_scopes += 1;
+  Ok(())
 }

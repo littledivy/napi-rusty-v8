@@ -1,4 +1,5 @@
 pub use std::ffi::CStr;
+pub use std::mem::transmute;
 pub use std::os::raw::c_char;
 pub use std::os::raw::c_void;
 pub use std::ptr;
