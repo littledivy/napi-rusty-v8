@@ -5,6 +5,7 @@ use deno_core::v8;
 #[derive(Debug)]
 /// Env that is shared between all contexts in same native module.
 pub struct EnvShared {
+  pub poller: *const std::sync::mpsc::Sender<napi_async_work>,
   pub instance_data: *mut c_void,
   pub data_finalize: Option<napi_finalize>,
   pub data_finalize_hint: *mut c_void,
@@ -17,6 +18,7 @@ pub struct EnvShared {
 impl EnvShared {
   pub fn new(napi_wrap: v8::Global<v8::Private>) -> Self {
     Self {
+      poller: std::ptr::null(),
       instance_data: std::ptr::null_mut(),
       data_finalize: None,
       data_finalize_hint: std::ptr::null_mut(),
