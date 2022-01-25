@@ -153,7 +153,8 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-fn main() {
+#[tokio::main]
+async fn main() {
   let mut runtime = JsRuntime::new(Default::default());
 
   {

@@ -36,6 +36,9 @@ pub struct Env<'a, 'b, 'c> {
   pub shared: *mut EnvShared,
 }
 
+unsafe impl Send for Env<'_, '_, '_> {}
+unsafe impl Sync for Env<'_, '_, '_> {}
+
 impl<'a, 'b, 'c> Env<'a, 'b, 'c> {
   pub fn new(scope: &'a mut v8::ContextScope<'b, v8::HandleScope<'c>>) -> Self {
     Self {

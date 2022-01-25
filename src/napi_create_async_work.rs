@@ -9,6 +9,9 @@ pub struct AsyncWork {
   pub complete: napi_async_complete_callback,
 }
 
+unsafe impl Send for AsyncWork {}
+unsafe impl Sync for AsyncWork {}
+
 #[napi_sym::napi_sym]
 fn napi_create_async_work(
   env: napi_env,
