@@ -5,7 +5,6 @@
 #![allow(dead_code)]
 
 use std::ffi::CString;
-use std::sync::mpsc::Sender;
 use std::task::Poll;
 
 use env::EnvShared;
@@ -163,25 +162,23 @@ async fn main() {
   let mut runtime = JsRuntime::new(Default::default());
 
   let mut thread_pool = AsyncThreadPool::new();
-  let tx: *mut c_void = unsafe { transmute(&thread_pool.tx) };
+  let thread_pool_ptr: *mut c_void = unsafe { transmute(&mut thread_pool) };
 
   {
-    let isolate = runtime.v8_isolate();
-
     let mut scope = &mut runtime.handle_scope();
     let context = scope.get_current_context();
     let inner_scope = &mut v8::ContextScope::new(scope, context);
     let global = context.global(inner_scope);
 
-    let tx_ext = v8::External::new(inner_scope, tx);
+    let tx_ext = v8::External::new(inner_scope, thread_pool_ptr);
 
     let dlopen_func = v8::Function::builder(
       |handle_scope: &mut v8::HandleScope,
        args: v8::FunctionCallbackArguments,
        mut rv: v8::ReturnValue| {
-        let tx = args.data().unwrap();
-        let tx = v8::Local::<v8::External>::try_from(tx).unwrap();
-        let tx: *const Sender<napi_async_work> = unsafe { transmute(tx.value()) };
+        let thread_pool_ptr = args.data().unwrap();
+        let thread_pool_ptr = v8::Local::<v8::External>::try_from(thread_pool_ptr).unwrap();
+        let thread_pool_ptr: *mut AsyncThreadPool = unsafe { transmute(thread_pool_ptr.value()) };
         
         let context = v8::Context::new(handle_scope);
         let scope = &mut v8::ContextScope::new(handle_scope, context);
@@ -208,7 +205,7 @@ async fn main() {
         let mut env_shared = EnvShared::new(napi_wrap);
         let cstr = CString::new(path.clone()).unwrap();
         env_shared.filename = cstr.as_ptr();
-        env_shared.poller = tx;
+        env_shared.thread_pool = thread_pool_ptr;
         std::mem::forget(cstr);
         unsafe {
           env_shared_ptr.write(env_shared);
@@ -312,14 +309,27 @@ async fn main() {
     }
   }
 
-  poll_fn(|cx| {
-    let x = thread_pool.poll();
-    let y = runtime.poll_event_loop(cx, false);
-    match (x, y) {
-      (Poll::Ready(_), Poll::Ready(res)) => Poll::Ready(res),
-      _ => Poll::Pending,
+  {
+    let mut scope = &mut runtime.handle_scope();
+    let context = scope.get_current_context();
+    let inner_scope = &mut v8::ContextScope::new(scope, context);
+    while thread_pool.poll(inner_scope) == Poll::Pending {
+      // println!("pending");
     }
-  })
-    .await
-    .unwrap();
+
+    // poll_fn(|cx| {
+    //   println!("poll_fn");
+    //   let x = thread_pool.poll(inner_scope);
+    //   let y = runtime.poll_event_loop(cx, false);
+    //   println!("poll_fn: {:?} {:?}", x, y);
+    //   let z = match (x, y) {
+    //     (Poll::Ready(_), Poll::Ready(res)) => Poll::Ready(res),
+    //     _ => Poll::Pending,
+    //   };
+    //   println!("poll_fn: {:?}", z);
+    //   z
+    // })
+    //   .await
+    //   .unwrap();
+  }
 }

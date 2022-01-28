@@ -1,8 +1,11 @@
+use std::collections::HashSet;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::task::Poll;
+
+use deno_core::v8;
 
 use crate::env::Env;
 use crate::ffi::*;
@@ -26,29 +29,25 @@ unsafe impl Sync for WorkWrapper {}
 
 impl AsyncWork {
   pub fn queue(work: napi_async_work) {
-    println!("AsyncWork queue start");
-    let poller: usize = unsafe {
+    let thread_pool: usize = unsafe {
+      let work_ptr = work;
       let work = &*(work as *const AsyncWork);
       let env = &*(work.env as *mut Env);
       let shared = env.shared();
-      transmute(shared.poller)
+      let thread_pool = &mut *shared.thread_pool;
+      thread_pool.queue.insert(work_ptr);
+      transmute(shared.thread_pool)
     };
     let data = Arc::new(Mutex::new(WorkWrapper(work)));
     let shared = Arc::clone(&data);
 
-    println!("AsyncWork spawn");
     tokio::task::spawn_blocking(move || {
-      println!("AsyncWork task start");
       let work = shared.lock().unwrap();
       let work_ptr = (*work).0;
       let work = unsafe { &*(work_ptr as *const AsyncWork) };
-      println!("AsyncWork task execute");
+      let thread_pool = unsafe { &mut *(thread_pool as *mut AsyncThreadPool) };
       unsafe { (work.execute)(work.env, work.data) };
-      println!("AsyncWork task complete");
-      let poller = unsafe { &*(poller as *const Sender<napi_async_work>) };
-      println!("AsyncWork task send");
-      poller.send(work_ptr).unwrap();
-      println!("AsyncWork task end");
+      thread_pool.tx.send(work_ptr).unwrap();
     });
   }
 
@@ -62,7 +61,7 @@ impl AsyncWork {
 pub struct AsyncThreadPool {
   pub tx: Sender<napi_async_work>,
   pub rx: Receiver<napi_async_work>,
-  pub queue: Vec<napi_async_work>,
+  pub queue: HashSet<napi_async_work>,
 }
 
 impl AsyncThreadPool {
@@ -71,26 +70,23 @@ impl AsyncThreadPool {
     Self {
       tx,
       rx,
-      queue: Vec::new(),
+      queue: HashSet::new(),
     }
   }
 
-  pub fn poll(&mut self) -> Poll<()> {
+  pub fn poll(&mut self, scope: &mut v8::ContextScope<v8::HandleScope>) -> Poll<()> {
     while let Ok(work_ptr) = self.rx.try_recv() {
-      for i in 0..self.queue.len() {
-        if self.queue[i] == work_ptr {
-          self.queue.remove(i);
-          break;
-        }
-      }
+      self.queue.remove(&work_ptr);
       let work = unsafe { &*(work_ptr as *const AsyncWork) };
-      println!("complete work");
+      println!("{:?}", work);
       unsafe {
-        (work.complete)(work.env, napi_ok, work.data);
+        let env = &*(work.env as *mut Env);
+        let mut env = env.with_new_scope(scope);
+        (work.complete)(transmute(&mut env), napi_ok, work.data);
+        println!("complete cb");
         std::alloc::dealloc(work_ptr as *mut u8, std::alloc::Layout::new::<AsyncWork>());
       }
     }
-    
     if self.queue.is_empty() {
       Poll::Ready(())
     } else {

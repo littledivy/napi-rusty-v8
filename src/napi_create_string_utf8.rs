@@ -10,6 +10,7 @@ fn napi_create_string_utf8(
   result: *mut napi_value,
 ) -> Result<(), ()> {
   let mut env = &mut *(env as *mut Env);
+  println!("napi_create_string_utf8 {:?}", env);
 
   let string = if length == -1 {
     std::ffi::CStr::from_ptr(string as *const _)

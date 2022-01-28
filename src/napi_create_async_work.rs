@@ -22,13 +22,22 @@ fn napi_create_async_work(
 
   let resource_name: v8::Local<v8::String> = transmute(async_resource_name);
   let work_ptr = std::alloc::alloc(std::alloc::Layout::new::<AsyncWork>());
+
+  let env_async = std::alloc::alloc(std::alloc::Layout::new::<Env>());
+  (env_async as *mut Env).write(Env {
+    open_handle_scopes: 0,
+    shared: env.shared,
+    scope: env.scope,
+  });
+
   let mut work = AsyncWork {
-    env: env_ptr,
+    env: env_async as napi_env,
     data,
     execute,
     complete,
   };
   (work_ptr as *mut AsyncWork).write(work);
   *result = work_ptr as napi_async_work;
+  
   Ok(())
 }
