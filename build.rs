@@ -26,4 +26,5 @@ fn main() {
       .unwrap()
       .display()
   );
+  println!("cargo:rustc-link-arg=-rdynamic");
 }
