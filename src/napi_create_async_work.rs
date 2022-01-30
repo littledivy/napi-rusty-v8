@@ -12,7 +12,7 @@ pub struct AsyncWork {
 unsafe impl Send for AsyncWork {}
 unsafe impl Sync for AsyncWork {}
 
-#[napi_sym::napi_sym]
+#[napi_sym]
 fn napi_create_async_work(
   env: napi_env,
   async_resource: napi_value,
@@ -21,7 +21,7 @@ fn napi_create_async_work(
   complete: napi_async_complete_callback,
   data: *mut c_void,
   result: *mut napi_async_work,
-) -> Result<(), ()> {
+) -> Result {
   let env = &mut *(env as *mut Env);
   let resource = if async_resource.is_null() {
     v8::Object::new(env.scope)

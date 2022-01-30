@@ -2,13 +2,13 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[napi_sym::napi_sym]
+#[napi_sym]
 fn napi_create_string_utf8(
   env: napi_env,
   string: *const u8,
   length: isize,
   result: *mut napi_value,
-) -> Result<(), ()> {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   let string = if length == -1 {

@@ -4,6 +4,9 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
+#[macro_use]
+extern crate napi_sym;
+
 use std::ffi::CString;
 
 use env::EnvShared;
@@ -158,8 +161,6 @@ async fn main() {
   let mut runtime = JsRuntime::new(Default::default());
 
   {
-    let isolate = runtime.v8_isolate();
-
     let mut scope = &mut runtime.handle_scope();
     let context = scope.get_current_context();
     let inner_scope = &mut v8::ContextScope::new(scope, context);
