@@ -2,14 +2,14 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_get_value_bigint_words(
+#[napi_sym]
+fn napi_get_value_bigint_words(
   env: napi_env,
   value: napi_value,
   sign_bit: *mut i32,
   size: *mut usize,
   out_words: *mut u64,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
@@ -24,5 +24,5 @@ pub unsafe extern "C" fn napi_get_value_bigint_words(
     *word = words[i];
   }
 
-  napi_ok
+  Ok(())
 }

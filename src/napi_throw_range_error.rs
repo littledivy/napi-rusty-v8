@@ -2,12 +2,12 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_throw_range_error(
+#[napi_sym]
+fn napi_throw_range_error(
   env: napi_env,
   code: *const c_char,
   msg: *const c_char,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   // let code = CStr::from_ptr(code).to_str().unwrap();
@@ -19,5 +19,5 @@ pub unsafe extern "C" fn napi_throw_range_error(
   let error = v8::Exception::range_error(env.scope, msg);
   env.scope.throw_exception(error);
 
-  napi_ok
+  Ok(())
 }

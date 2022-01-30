@@ -21,14 +21,14 @@ pub struct NapiModule {
   reserved: [*mut c_void; 4],
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_module_register(
+#[napi_sym]
+fn napi_module_register(
   module: *const NapiModule,
-) -> napi_status {
+) -> Result {
   MODULE.with(|cell| {
     let mut slot = cell.borrow_mut();
     assert!(slot.is_none());
     slot.replace(module);
   });
-  napi_ok
+  Ok(())
 }

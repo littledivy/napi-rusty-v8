@@ -2,15 +2,15 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_create_typedarray(
+#[napi_sym]
+fn napi_create_typedarray(
   env: napi_env,
   ty: napi_typedarray_type,
   length: usize,
   arraybuffer: napi_value,
   byte_offset: usize,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let ab: v8::Local<v8::Value> = std::mem::transmute(arraybuffer);
   let ab = v8::Local::<v8::ArrayBuffer>::try_from(ab).unwrap();
@@ -63,9 +63,9 @@ pub unsafe extern "C" fn napi_create_typedarray(
         .into()
     }
     _ => {
-      return napi_invalid_arg;
+      return Err(Error::InvalidArg);
     }
   };
   *result = std::mem::transmute(typedarray);
-  napi_ok
+  Ok(())
 }

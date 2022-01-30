@@ -2,15 +2,15 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_create_external_buffer(
+#[napi_sym]
+fn napi_create_external_buffer(
   env: napi_env,
   data: *mut c_void,
   byte_length: usize,
   finalize_cb: napi_finalize,
   finalize_hint: *mut c_void,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let slice = std::slice::from_raw_parts(data as *mut u8, byte_length);
   // TODO: make this not copy the slice
@@ -22,5 +22,5 @@ pub unsafe extern "C" fn napi_create_external_buffer(
   let value = v8::Uint8Array::new(env.scope, ab, 0, byte_length).unwrap();
   let value: v8::Local<v8::Value> = value.into();
   *result = std::mem::transmute(value);
-  napi_ok
+  Ok(())
 }

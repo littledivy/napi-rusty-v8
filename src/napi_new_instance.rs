@@ -2,14 +2,14 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_new_instance(
+#[napi_sym]
+fn napi_new_instance(
   env: napi_env,
   constructor: napi_value,
   argc: usize,
   argv: *const napi_value,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let constructor: v8::Local<v8::Value> = std::mem::transmute(constructor);
   let constructor = v8::Local::<v8::Function>::try_from(constructor).unwrap();
@@ -18,5 +18,5 @@ pub unsafe extern "C" fn napi_new_instance(
   let inst = constructor.new_instance(env.scope, args).unwrap();
   let value: v8::Local<v8::Value> = inst.into();
   *result = std::mem::transmute(value);
-  napi_ok
+  Ok(())
 }

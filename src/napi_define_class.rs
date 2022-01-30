@@ -3,8 +3,8 @@ use crate::ffi::*;
 use crate::function::create_function_template;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_define_class(
+#[napi_sym]
+fn napi_define_class(
   env: napi_env,
   utf8name: *const c_char,
   length: usize,
@@ -13,7 +13,7 @@ pub unsafe extern "C" fn napi_define_class(
   property_count: usize,
   properties: *const napi_property_descriptor,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let name = std::ffi::CStr::from_ptr(utf8name).to_str().unwrap();
   let tpl: v8::Local<v8::FunctionTemplate> = std::mem::transmute(
@@ -88,5 +88,5 @@ pub unsafe extern "C" fn napi_define_class(
 
   let value: v8::Local<v8::Value> = tpl.get_function(env.scope).unwrap().into();
   *result = std::mem::transmute(value);
-  napi_ok
+  Ok(())
 }

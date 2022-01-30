@@ -28,23 +28,23 @@ pub fn get_value_type(value: v8::Local<v8::Value>) -> Option<napi_valuetype> {
   }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_typeof(
+#[napi_sym]
+fn napi_typeof(
   env: napi_env,
   value: napi_value,
   result: *mut napi_valuetype,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   if value.is_null() {
     *result = napi_undefined;
-    return napi_ok;
+    return Ok(());
   }
   let value: v8::Local<v8::Value> = std::mem::transmute(value);
   let ty = get_value_type(value);
   if let Some(ty) = ty {
     *result = ty;
-    return napi_ok;
+    Ok(())
   } else {
-    return napi_invalid_arg;
+    return Err(Error::InvalidArg);
   }
 }

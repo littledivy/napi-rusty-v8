@@ -1,7 +1,7 @@
 use crate::ffi::*;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_reference_ref() -> napi_status {
+#[napi_sym]
+fn napi_reference_ref() -> Result {
   // TODO
-  napi_ok
+  Ok(())
 }

@@ -4,14 +4,14 @@ use deno_core::v8;
 
 use crate::util::get_array_buffer_ptr;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_create_dataview(
+#[napi_sym]
+fn napi_create_dataview(
   env: napi_env,
   len: usize,
   data: *mut *mut u8,
   byte_offset: usize,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let value = v8::ArrayBuffer::new(env.scope, len);
   if !data.is_null() {
@@ -32,5 +32,5 @@ pub unsafe extern "C" fn napi_create_dataview(
     .unwrap();
   let value: v8::Local<v8::Value> = value.into();
   *result = std::mem::transmute(value);
-  napi_ok
+  Ok(())
 }

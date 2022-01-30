@@ -3,12 +3,12 @@ use crate::ffi::*;
 use crate::function::CallbackInfo;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_get_new_target(
+#[napi_sym]
+fn napi_get_new_target(
   env: napi_env,
   cbinfo: napi_callback_info,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   let cbinfo: &CallbackInfo = &*(cbinfo as *const CallbackInfo);
@@ -16,5 +16,5 @@ pub unsafe extern "C" fn napi_get_new_target(
 
   // TODO: need v8 binding
 
-  napi_ok
+  Ok(())
 }

@@ -3,15 +3,15 @@ use crate::ffi::*;
 use crate::function::CallbackInfo;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_get_cb_info(
+#[napi_sym]
+fn napi_get_cb_info(
   env: napi_env,
   cbinfo: napi_callback_info,
   argc: *mut i32,
   argv: *mut napi_value,
   this_arg: *mut napi_value,
   cb_data: *mut *mut c_void,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   let cbinfo: &CallbackInfo = &*(cbinfo as *const CallbackInfo);
@@ -41,5 +41,5 @@ pub unsafe extern "C" fn napi_get_cb_info(
     }
   }
 
-  napi_ok
+  Ok(())
 }

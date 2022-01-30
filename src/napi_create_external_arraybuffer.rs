@@ -28,15 +28,15 @@ pub unsafe extern "C" fn backing_store_deleter_callback(
   drop(b);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_create_external_arraybuffer(
+#[napi_sym]
+fn napi_create_external_arraybuffer(
   env: napi_env,
   data: *mut c_void,
   byte_length: usize,
   finalize_cb: napi_finalize,
   finalize_hint: *mut c_void,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let slice = std::slice::from_raw_parts(data as *mut u8, byte_length);
   // TODO: finalization
@@ -51,5 +51,5 @@ pub unsafe extern "C" fn napi_create_external_arraybuffer(
   let ab = v8::ArrayBuffer::with_backing_store(env.scope, &store.make_shared());
   let value: v8::Local<v8::Value> = ab.into();
   *result = std::mem::transmute(value);
-  napi_ok
+  Ok(())
 }

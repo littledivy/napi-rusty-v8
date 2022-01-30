@@ -2,15 +2,15 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_call_function(
+#[napi_sym]
+fn napi_call_function(
   env: napi_env,
   recv: napi_value,
   func: napi_value,
   argc: usize,
   argv: *const napi_value,
   result: *mut napi_value,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
   let recv: v8::Local<v8::Value> = std::mem::transmute(recv);
   let func: v8::Local<v8::Value> = std::mem::transmute(func);
@@ -20,5 +20,5 @@ pub unsafe extern "C" fn napi_call_function(
   let ret = func.call(env.scope, recv, args).unwrap();
   let value: v8::Local<v8::Value> = ret.into();
   *result = std::mem::transmute(value);
-  napi_ok
+  Ok(())
 }

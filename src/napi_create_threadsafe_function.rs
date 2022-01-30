@@ -16,5 +16,6 @@ fn napi_create_threadsafe_function(
   result: *mut napi_threadsafe_function,
 ) -> Result {
   let env = &mut *(env as *mut Env);
+  // TODO
   Ok(())
 }

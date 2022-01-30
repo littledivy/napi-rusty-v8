@@ -2,14 +2,14 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_is_typedarray(
+#[napi_sym]
+fn napi_is_typedarray(
   env: napi_env,
   value: napi_value,
   result: *mut bool,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
-  let value: v8::Local<v8::Value> = std::mem::transmute(value);
+  let value: v8::Local<v8::Value> = transmute(value);
   *result = value.is_typed_array();
-  napi_ok
+  Ok(())
 }

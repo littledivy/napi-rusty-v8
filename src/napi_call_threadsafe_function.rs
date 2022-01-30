@@ -1,4 +1,7 @@
-#[no_mangle]
-pub unsafe extern "C" fn napi_call_threadsafe_function() {
-  todo!()
+use crate::ffi::*;
+
+#[napi_sym]
+fn napi_call_threadsafe_function() -> Result {
+  // TODO
+  Ok(())
 }

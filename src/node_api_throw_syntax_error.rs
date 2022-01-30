@@ -2,12 +2,12 @@ use crate::env::Env;
 use crate::ffi::*;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn node_api_throw_syntax_error(
+#[napi_sym]
+fn node_api_throw_syntax_error(
   env: napi_env,
   code: *const c_char,
   msg: *const c_char,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   // let code = CStr::from_ptr(code).to_str().unwrap();
@@ -19,5 +19,5 @@ pub unsafe extern "C" fn node_api_throw_syntax_error(
   let error = v8::Exception::syntax_error(env.scope, msg);
   env.scope.throw_exception(error);
 
-  napi_ok
+  Ok(())
 }

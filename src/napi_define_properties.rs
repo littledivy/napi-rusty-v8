@@ -3,13 +3,13 @@ use crate::ffi::*;
 use crate::function::create_function;
 use deno_core::v8;
 
-#[no_mangle]
-pub unsafe extern "C" fn napi_define_properties(
+#[napi_sym]
+fn napi_define_properties(
   env: napi_env,
   obj: napi_value,
   property_count: usize,
   properties: *const napi_property_descriptor,
-) -> napi_status {
+) -> Result {
   let mut env = &mut *(env as *mut Env);
 
   let object: v8::Local<v8::Object> = std::mem::transmute(obj);
@@ -32,5 +32,5 @@ pub unsafe extern "C" fn napi_define_properties(
     }
   }
 
-  napi_ok
+  Ok(())
 }
