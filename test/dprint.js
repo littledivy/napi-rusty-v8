@@ -1,4 +1,6 @@
-const dprint = dlopen("./testdata/node_modules/dprint-node/dprint-node.linux-x64-gnu.node");
+const dprint = dlopen(
+  "./testdata/node_modules/dprint-node/dprint-node.linux-x64-gnu.node",
+);
 
 print(
   dprint.format(

@@ -22,9 +22,7 @@ pub struct NapiModule {
 }
 
 #[napi_sym]
-fn napi_module_register(
-  module: *const NapiModule,
-) -> Result {
+fn napi_module_register(module: *const NapiModule) -> Result {
   MODULE.with(|cell| {
     let mut slot = cell.borrow_mut();
     assert!(slot.is_none());
