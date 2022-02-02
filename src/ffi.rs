@@ -88,7 +88,9 @@ impl Into<napi_status> for Error {
       Error::BigIntExpected => napi_bigint_expected,
       Error::DateExpected => napi_date_expected,
       Error::ArrayBufferExpected => napi_arraybuffer_expected,
-      Error::DetachableArraybufferExpected => napi_detachable_arraybuffer_expected,
+      Error::DetachableArraybufferExpected => {
+        napi_detachable_arraybuffer_expected
+      }
       Error::WouldDeadlock => napi_would_deadlock,
     }
   }
