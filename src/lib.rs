@@ -154,117 +154,113 @@ pub mod util;
 use crate::env::Env;
 use crate::ffi::*;
 
+pub fn dlopen_func<'s>(
+  scope: &mut v8::HandleScope<'s>,
+  args: v8::FunctionCallbackArguments,
+  mut rv: v8::ReturnValue,
+) {
+  let context = v8::Context::new(scope);
+  let scope = &mut v8::ContextScope::new(scope, context);
+
+  let napi_wrap_name = v8::String::new(scope, "napi_wrap").unwrap();
+  let napi_wrap = v8::Private::new(scope, Some(napi_wrap_name));
+  let napi_wrap = v8::Local::new(scope, napi_wrap);
+  let napi_wrap = v8::Global::new(scope, napi_wrap);
+
+  let path = args.get(0).to_string(scope).unwrap();
+  let path = path.to_rust_string_lossy(scope);
+
+  let mut exports = v8::Object::new(scope);
+
+  // We need complete control over the env object's lifetime
+  // so we'll use explicit allocation for it, so that it doesn't
+  // die before the module itself. Using struct & their pointers
+  // resulted in a use-after-free situation which turned out to be
+  // unfixable, so here we are.
+  let env_shared_ptr = unsafe {
+    std::alloc::alloc(std::alloc::Layout::new::<EnvShared>()) as *mut EnvShared
+  };
+  let mut env_shared = EnvShared::new(napi_wrap);
+  let cstr = CString::new(path.clone()).unwrap();
+  env_shared.filename = cstr.as_ptr();
+  std::mem::forget(cstr);
+  unsafe {
+    env_shared_ptr.write(env_shared);
+  }
+
+  let env_ptr =
+    unsafe { std::alloc::alloc(std::alloc::Layout::new::<Env>()) as napi_env };
+  let mut env = Env::new(scope);
+  env.shared = env_shared_ptr;
+  unsafe {
+    (env_ptr as *mut Env).write(env);
+  }
+
+  #[cfg(unix)]
+  let flags = RTLD_LAZY;
+  #[cfg(not(unix))]
+  let flags = 0x00000008;
+
+  #[cfg(unix)]
+  let library = match unsafe { Library::open(Some(&path), flags) } {
+    Ok(lib) => lib,
+    Err(e) => {
+      let message = v8::String::new(scope, &e.to_string()).unwrap();
+      let error = v8::Exception::type_error(scope, message);
+      scope.throw_exception(error);
+      return;
+    }
+  };
+
+  #[cfg(not(unix))]
+  let library = match unsafe { Library::load_with_flags(&path, flags) } {
+    Ok(lib) => lib,
+    Err(e) => {
+      let message = v8::String::new(scope, &e.to_string()).unwrap();
+      let error = v8::Exception::type_error(scope, message);
+      scope.throw_exception(error);
+      return;
+    }
+  };
+
+  napi_module_register::MODULE.with(|cell| {
+    let slot = *cell.borrow();
+    match slot {
+      Some(nm) => {
+        let nm = unsafe { &*nm };
+        assert_eq!(nm.nm_version, 1);
+        let exports = unsafe {
+          (nm.nm_register_func)(env_ptr, std::mem::transmute(exports))
+        };
+
+        let exports: v8::Local<v8::Value> =
+          unsafe { std::mem::transmute(exports) };
+        rv.set(exports);
+      }
+      None => {
+        // Initializer callback.
+        let init = unsafe {
+          library
+            .get::<unsafe extern "C" fn(
+              env: napi_env,
+              exports: napi_value,
+            ) -> napi_value>(b"napi_register_module_v1")
+            .expect("napi_register_module_v1 not found")
+        };
+
+        unsafe { init(env_ptr, std::mem::transmute(exports)) };
+        rv.set(exports.into());
+      }
+    }
+  });
+
+  std::mem::forget(library);
+}
+
 pub fn setup_napi(scope: &mut v8::HandleScope<'_>, obj: v8::Local<v8::Object>) {
-  let dlopen_func = v8::Function::builder(
-    |handle_scope: &mut v8::HandleScope,
-     args: v8::FunctionCallbackArguments,
-     mut rv: v8::ReturnValue| {
-      let context = v8::Context::new(handle_scope);
-      let scope = &mut v8::ContextScope::new(handle_scope, context);
-
-      let napi_wrap_name = v8::String::new(scope, "napi_wrap").unwrap();
-      let napi_wrap = v8::Private::new(scope, Some(napi_wrap_name));
-      let napi_wrap = v8::Local::new(scope, napi_wrap);
-      let napi_wrap = v8::Global::new(scope, napi_wrap);
-
-      let path = args.get(0).to_string(scope).unwrap();
-      let path = path.to_rust_string_lossy(scope);
-
-      let mut exports = v8::Object::new(scope);
-
-      // We need complete control over the env object's lifetime
-      // so we'll use explicit allocation for it, so that it doesn't
-      // die before the module itself. Using struct & their pointers
-      // resulted in a use-after-free situation which turned out to be
-      // unfixable, so here we are.
-      let env_shared_ptr = unsafe {
-        std::alloc::alloc(std::alloc::Layout::new::<EnvShared>())
-          as *mut EnvShared
-      };
-      let mut env_shared = EnvShared::new(napi_wrap);
-      let cstr = CString::new(path.clone()).unwrap();
-      env_shared.filename = cstr.as_ptr();
-      std::mem::forget(cstr);
-      unsafe {
-        env_shared_ptr.write(env_shared);
-      }
-
-      let env_ptr = unsafe {
-        std::alloc::alloc(std::alloc::Layout::new::<Env>()) as napi_env
-      };
-      let mut env = Env::new(scope);
-      env.shared = env_shared_ptr;
-      unsafe {
-        (env_ptr as *mut Env).write(env);
-      }
-
-      #[cfg(unix)]
-      let flags = RTLD_LAZY;
-      #[cfg(not(unix))]
-      let flags = 0x00000008;
-
-      #[cfg(unix)]
-      let library = match unsafe { Library::open(Some(&path), flags) } {
-        Ok(lib) => lib,
-        Err(e) => {
-          let message = v8::String::new(scope, &e.to_string()).unwrap();
-          let error = v8::Exception::type_error(scope, message);
-          scope.throw_exception(error);
-          return;
-        }
-      };
-
-      #[cfg(not(unix))]
-      let library = match unsafe { Library::load_with_flags(&path, flags) } {
-        Ok(lib) => lib,
-        Err(e) => {
-          let message = v8::String::new(scope, &e.to_string()).unwrap();
-          let error = v8::Exception::type_error(scope, message);
-          scope.throw_exception(error);
-          return;
-        }
-      };
-
-      napi_module_register::MODULE.with(|cell| {
-        let slot = *cell.borrow();
-        match slot {
-          Some(nm) => {
-            let nm = unsafe { &*nm };
-            assert_eq!(nm.nm_version, 1);
-            let exports = unsafe {
-              (nm.nm_register_func)(env_ptr, std::mem::transmute(exports))
-            };
-
-            let exports: v8::Local<v8::Value> =
-              unsafe { std::mem::transmute(exports) };
-            rv.set(exports);
-          }
-          None => {
-            // Initializer callback.
-            let init = unsafe {
-              library
-                .get::<unsafe extern "C" fn(
-                  env: napi_env,
-                  exports: napi_value,
-                ) -> napi_value>(b"napi_register_module_v1")
-                .expect("napi_register_module_v1 not found")
-            };
-
-            unsafe { init(env_ptr, std::mem::transmute(exports)) };
-            rv.set(exports.into());
-          }
-        }
-      });
-
-      std::mem::forget(library);
-    },
-  )
-  .build(scope)
-  .unwrap();
-
+  let dlopen_func = v8::FunctionTemplate::new(scope, dlopen_func);
+  let val = dlopen_func.get_function(scope).unwrap();
   let dlopen_name = v8::String::new(scope, "dlopen").unwrap();
 
-  obj
-    .set(scope, dlopen_name.into(), dlopen_func.into())
-    .unwrap();
+  obj.set(scope, dlopen_name.into(), val.into()).unwrap();
 }

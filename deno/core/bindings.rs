@@ -111,6 +111,9 @@ pub static EXTERNAL_REFERENCES: Lazy<v8::ExternalReferences> =
       v8::ExternalReference {
         function: set_wasm_streaming_callback.map_fn_to(),
       },
+      v8::ExternalReference {
+        function: napi_deno::dlopen_func.map_fn_to(),
+      },
     ])
   });
 
