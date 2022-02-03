@@ -134,6 +134,17 @@
   dependencies:
     chalk "^4.1.0"
 
+"@parcel/optimizer-image@^2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@parcel/optimizer-image/-/optimizer-image-2.2.1.tgz#b443ecdbf2d2a43c419393ba64ae7ddfd8717ede"
+  integrity sha512-InHlVdQxi7Kz19rawP1D/PZWBw978owGgtMEHoYC0ZRDNFIXbG8RCqVuwrkRqwhPk1SFlPOPYlMW60QqBre3Jw==
+  dependencies:
+    "@parcel/diagnostic" "^2.2.1"
+    "@parcel/plugin" "^2.2.1"
+    "@parcel/utils" "^2.2.1"
+    "@parcel/workers" "^2.2.1"
+    detect-libc "^1.0.3"
+
 "@parcel/package-manager@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@parcel/package-manager/-/package-manager-2.2.1.tgz#921753047db17c273f462121961992eecf41d02c"
