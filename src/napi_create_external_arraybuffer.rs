@@ -1,8 +1,8 @@
 use crate::env::Env;
 use crate::ffi::*;
-use deno_core::v8;
-use deno_core::v8::BackingStore;
-use deno_core::v8::UniqueRef;
+
+use v8::BackingStore;
+use v8::UniqueRef;
 
 pub type BackingStoreDeleterCallback = unsafe extern "C" fn(
   data: *mut c_void,

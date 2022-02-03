@@ -1,5 +1,4 @@
 use crate::ffi::*;
-use deno_core::v8;
 
 #[repr(C)]
 #[derive(Debug)]

@@ -1,6 +1,5 @@
 use crate::env::{Env, EnvShared};
 use crate::ffi::*;
-use deno_core::v8;
 
 #[napi_sym]
 fn napi_remove_wrap(env: napi_env, value: *mut v8::Value) -> Result {

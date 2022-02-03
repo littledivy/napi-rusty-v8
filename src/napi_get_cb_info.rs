@@ -1,7 +1,6 @@
 use crate::env::Env;
 use crate::ffi::*;
 use crate::function::CallbackInfo;
-use deno_core::v8;
 
 #[napi_sym]
 fn napi_get_cb_info(

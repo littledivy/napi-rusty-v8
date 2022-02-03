@@ -1,6 +1,5 @@
 use crate::env::Env;
 use crate::ffi::*;
-use deno_core::v8;
 
 pub fn get_value_type(value: v8::Local<v8::Value>) -> Option<napi_valuetype> {
   if value.is_undefined() {

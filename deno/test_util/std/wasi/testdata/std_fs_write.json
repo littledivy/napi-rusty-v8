@@ -1,0 +1,8 @@
+{
+  "files": {
+    "fixtures/new_file": "new_file"
+  },
+  "preopens": {
+    "fixtures": "fixtures"
+  }
+}

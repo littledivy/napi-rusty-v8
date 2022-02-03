@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "tags": ["recommended"],
+    "include": [
+      "ban-untagged-todo",
+      "camelcase"
+    ],
+    "exclude": [
+      "no-invalid-triple-slash-reference"
+    ]
+  }
+}

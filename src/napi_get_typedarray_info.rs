@@ -1,7 +1,6 @@
 use crate::env::Env;
 use crate::ffi::*;
 use crate::util::get_array_buffer_ptr;
-use deno_core::v8;
 
 #[napi_sym]
 fn napi_get_typedarray_info(

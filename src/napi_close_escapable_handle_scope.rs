@@ -1,6 +1,6 @@
 use crate::env::Env;
 use crate::ffi::*;
-// use deno_core::v8;
+//
 
 #[napi_sym]
 fn napi_close_escapable_handle_scope(

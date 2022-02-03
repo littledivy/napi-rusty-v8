@@ -1,4 +1,3 @@
-use deno_core::v8;
 use std::cell::Cell;
 
 unsafe fn get_backing_store_slice(
