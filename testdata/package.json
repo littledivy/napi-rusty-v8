@@ -9,6 +9,7 @@
     "@parcel/hash": "^2.2.1",
     "@parcel/optimizer-image": "^2.2.1",
     "@parcel/transformer-js": "^2.2.1",
+    "@parcel/watcher": "^2.0.5",
     "@swc/cli": "^0.1.55",
     "@swc/core": "^1.2.133",
     "dprint-node": "^1.0.5",
