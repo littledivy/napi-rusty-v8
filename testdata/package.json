@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@parcel/hash": "^2.2.1",
     "@parcel/transformer-js": "^2.2.1",
     "@swc/cli": "^0.1.55",
     "@swc/core": "^1.2.133",

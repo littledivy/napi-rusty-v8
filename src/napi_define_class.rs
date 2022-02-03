@@ -21,12 +21,16 @@ fn napi_define_class(
   );
   let napi_properties = std::slice::from_raw_parts(properties, property_count);
   for p in napi_properties {
-    let name_str = CStr::from_ptr(p.utf8name).to_str().unwrap();
-    let name = v8::String::new(env.scope, name_str).unwrap();
+    let name = if !p.utf8name.is_null() {
+      let name_str = CStr::from_ptr(p.utf8name).to_str().unwrap();
+      v8::String::new(env.scope, name_str).unwrap()
+    } else {
+      std::mem::transmute(p.name)
+    };
 
     if !(p.method as *const c_void).is_null() {
       let function: v8::Local<v8::FunctionTemplate> = std::mem::transmute(
-        create_function_template(env, Some(name_str), p.method, p.data),
+        create_function_template(env, None, p.method, p.data),
       );
       let proto = tpl.prototype_template(env.scope);
       proto.set(name.into(), function.into());
@@ -36,10 +40,7 @@ fn napi_define_class(
       let getter: Option<v8::Local<v8::FunctionTemplate>> =
         if !(p.getter as *const c_void).is_null() {
           Some(std::mem::transmute(create_function_template(
-            env,
-            Some(name_str),
-            p.getter,
-            p.data,
+            env, None, p.getter, p.data,
           )))
         } else {
           None
@@ -47,10 +48,7 @@ fn napi_define_class(
       let setter: Option<v8::Local<v8::FunctionTemplate>> =
         if !(p.setter as *const c_void).is_null() {
           Some(std::mem::transmute(create_function_template(
-            env,
-            Some(name_str),
-            p.setter,
-            p.data,
+            env, None, p.setter, p.data,
           )))
         } else {
           None
