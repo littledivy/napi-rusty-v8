@@ -1,8 +1,5 @@
 # Deno N-API
 
-[WIP] N-API implementation for `deno_core`.
+[WIP] N-API implementation for Deno.
 
-## License
-
-Copyright 2022, the napi-rusty-v8 authors. 
-All rights reserved. MIT license.
+# Moved to https://github.com/denoland/deno/pull/13633
